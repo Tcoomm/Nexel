@@ -24,3 +24,6 @@ tests/coverage-report/
 
 # Sandbox directory
 sandbox/
+
+# Visual Studio
+/.vs/
