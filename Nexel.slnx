@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ExampleLib/ExampleLib.csproj" />
+    <Project Path="src/Nexel.Lexer/Nexel.Lexer.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ExampleLib.UnitTests/ExampleLib.UnitTests.csproj" />
