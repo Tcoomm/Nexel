@@ -18,6 +18,15 @@ public sealed class StringLiteralTests
             { "\"slash\\\\value\"", "slash\\\\value" },
         };
 
+    public static TheoryData<string> UnterminatedStringData =>
+        new TheoryData<string>
+        {
+            "\"Hello",
+            "\"Hello\nWorld\"",
+            "\"Hello\rWorld\"",
+            "\"ends-with-backslash\\",
+        };
+
     [Theory]
     [MemberData(nameof(ValidStringData))]
     public void Tokenize_ValidString_ReturnsStringLiteral(string input, string expectedLexeme)
@@ -30,15 +39,6 @@ public sealed class StringLiteralTests
         Assert.Equal(TokenKind.StringLiteral, tokens[0].Kind);
         Assert.Equal(expectedLexeme, tokens[0].Lexeme);
     }
-
-    public static TheoryData<string> UnterminatedStringData =>
-        new TheoryData<string>
-        {
-            "\"Hello",
-            "\"Hello\nWorld\"",
-            "\"Hello\rWorld\"",
-            "\"ends-with-backslash\\",
-        };
 
     [Theory]
     [MemberData(nameof(UnterminatedStringData))]

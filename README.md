@@ -6,17 +6,25 @@ Nexel — учебный язык программирования, разраб
 
 ## Команда
 
-- Shurkov Maxim
-- Glushkov Roman
-- Domrachev Sergey
+* Shurkov Maxim
+* Glushkov Roman
+* Domrachev Sergey
 
 ## Структура проекта
 
-- `src` — исходный код проекта
-- `tests` — автоматические тесты
-- `scripts` — вспомогательные скрипты
+* `src` — исходный код проекта
+* `tests` — автоматические тесты
+* `docs` — спецификация языка
+* `scripts` — вспомогательные скрипты
 
 ## Сборка
 
 ```bash
 dotnet build
+```
+
+## Тесты
+
+```bash
+dotnet test
+```
