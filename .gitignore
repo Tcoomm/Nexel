@@ -27,3 +27,7 @@ sandbox/
 
 # Visual Studio
 /.vs/
+
+# Test results and coverage
+**/TestResults/
+**/coverage-report/
