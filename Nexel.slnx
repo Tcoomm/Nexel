@@ -5,5 +5,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ExampleLib.UnitTests/ExampleLib.UnitTests.csproj" />
+    <Project Path="tests/Nexel.Lexer.UnitTests/Nexel.Lexer.UnitTests.csproj" />
   </Folder>
 </Solution>
