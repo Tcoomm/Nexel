@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Nexel.Lexer;
 
 public sealed class Lexer
@@ -208,7 +206,6 @@ public sealed class Lexer
         Advance();
 
         int begin = _index;
-        StringBuilder processed = new StringBuilder();
 
         while (true)
         {
@@ -246,34 +243,18 @@ public sealed class Lexer
                 switch (esc)
                 {
                     case '"':
-                        processed.Append('"');
-                        break;
-
                     case '\\':
-                        processed.Append('\\');
-                        break;
-
                     case 'n':
-                        processed.Append('\n');
-                        break;
-
                     case 'r':
-                        processed.Append('\r');
-                        break;
-
                     case 't':
-                        processed.Append('\t');
-                        break;
+                        Advance();
+                        continue;
 
                     default:
                         throw new LexerException($"Unknown escape sequence '\\{esc}'", escPos);
                 }
-
-                Advance();
-                continue;
             }
 
-            processed.Append(c);
             Advance();
         }
     }
