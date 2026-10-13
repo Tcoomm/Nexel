@@ -9,7 +9,7 @@ public enum OpCode
     Div,
     Mod,
     Neg,
-    Input,
-    Print,
     Pop,
+    ReadInt,
+    Print,
 }

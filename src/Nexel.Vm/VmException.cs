@@ -1,9 +1,11 @@
 namespace Nexel.Vm;
 
-#pragma warning disable RCS1194
-
 public sealed class VmException : Exception
 {
+    public VmException()
+    {
+    }
+
     public VmException(string message)
         : base(message)
     {
@@ -14,5 +16,3 @@ public sealed class VmException : Exception
     {
     }
 }
-
-#pragma warning restore RCS1194

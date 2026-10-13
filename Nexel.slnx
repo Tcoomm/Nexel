@@ -1,10 +1,12 @@
 ﻿<Solution>
   <Folder Name="/src/">
     <Project Path="src/Nexel.Lexer/Nexel.Lexer.csproj" />
+    <Project Path="src/Nexel.Parser/Nexel.Parser.csproj" />
     <Project Path="src/Nexel.Vm/Nexel.Vm.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Nexel.Lexer.UnitTests/Nexel.Lexer.UnitTests.csproj" />
+    <Project Path="tests/Nexel.Parser.UnitTests/Nexel.Parser.UnitTests.csproj" />
     <Project Path="tests/Nexel.Vm.UnitTests/Nexel.Vm.UnitTests.csproj" />
   </Folder>
 </Solution>

@@ -133,7 +133,7 @@ public sealed class VirtualMachineTests
         string output = ExecuteAndGetOutput(
             new List<Instruction>
             {
-                new Instruction(OpCode.Input),
+                new Instruction(OpCode.ReadInt),
                 new Instruction(OpCode.Push, 1),
                 new Instruction(OpCode.Add),
                 new Instruction(OpCode.Print),
@@ -264,7 +264,7 @@ public sealed class VirtualMachineTests
 
         Assert.Throws<VmException>(() =>
             virtualMachine.Execute(
-                new List<Instruction> { new Instruction(OpCode.Input) },
+                new List<Instruction> { new Instruction(OpCode.ReadInt) },
                 new StringReader(string.Empty),
                 new StringWriter()));
     }
@@ -276,20 +276,8 @@ public sealed class VirtualMachineTests
 
         Assert.Throws<VmException>(() =>
             virtualMachine.Execute(
-                new List<Instruction> { new Instruction(OpCode.Input) },
+                new List<Instruction> { new Instruction(OpCode.ReadInt) },
                 new StringReader("abc" + Environment.NewLine),
-                new StringWriter()));
-    }
-
-    [Fact]
-    public void PushWithoutOperand_ShouldThrow()
-    {
-        VirtualMachine virtualMachine = new VirtualMachine();
-
-        Assert.Throws<VmException>(() =>
-            virtualMachine.Execute(
-                new List<Instruction> { new Instruction(OpCode.Push) },
-                new StringReader(string.Empty),
                 new StringWriter()));
     }
 
