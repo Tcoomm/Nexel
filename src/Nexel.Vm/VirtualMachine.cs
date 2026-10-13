@@ -42,15 +42,10 @@ public sealed class VirtualMachine
         TextReader input,
         TextWriter output)
     {
-        switch (instruction.OpCode)
+        switch (instruction.Code)
         {
             case OpCode.Push:
-                if (!instruction.Operand.HasValue)
-                {
-                    throw new VmException("Push instruction requires an integer operand.");
-                }
-
-                stack.Push(instruction.Operand.Value);
+                stack.Push(instruction.Operand);
                 break;
 
             case OpCode.Add:
@@ -112,7 +107,7 @@ public sealed class VirtualMachine
                     break;
                 }
 
-            case OpCode.Input:
+            case OpCode.ReadInt:
                 {
                     string? line = input.ReadLine();
 
@@ -147,7 +142,7 @@ public sealed class VirtualMachine
 
             default:
                 throw new VmException(
-                    $"Unknown VM instruction: {(int)instruction.OpCode}.");
+                    $"Unknown VM instruction: {(int)instruction.Code}.");
         }
     }
 
