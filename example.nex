@@ -1,0 +1,4 @@
+﻿void main() {
+    print(10 + 2 * 5);
+    print(readInt() + 1);
+}

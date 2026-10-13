@@ -150,7 +150,17 @@ public sealed class Parser
     {
         if (Current.Kind == TokenKind.IntegerLiteral)
         {
-            int value = int.Parse(Current.Lexeme, CultureInfo.InvariantCulture);
+            if (!int.TryParse(
+                Current.Lexeme,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int value))
+            {
+                throw new ParserException(
+                    $"Integer literal is out of range: {Current.Lexeme}",
+                    Current.Position);
+            }
+
             Advance();
             Emit(new Instruction(OpCode.Push, value));
             return;

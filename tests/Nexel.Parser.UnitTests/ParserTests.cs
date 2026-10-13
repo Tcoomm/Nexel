@@ -11,6 +11,14 @@ using Xunit;
 public sealed class ParserTests
 {
     [Fact]
+    public void ParseIntegerLiteralOutOfRangeThrows()
+    {
+        ParserException ex = Assert.Throws<ParserException>(() => Parse("void main() { print(2147483648); }"));
+        Assert.Equal(1, ex.Position.Line);
+        Assert.Contains("out of range", ex.Message);
+    }
+
+    [Fact]
     public void ParseEmptyMain()
     {
         AssertProgram(string.Empty);
