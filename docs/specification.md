@@ -130,3 +130,37 @@ string_literal ::= '"' (string_char | escape)* '"'
 - встретился одиночный `&` или `|`.
 
 Ошибка содержит позицию в исходном тексте.
+
+## 3. Синтаксис
+
+Во второй итерации программа содержит функцию `main` со списком инструкций. Поддерживаются целочисленные выражения, вывод через `print` и ввод через `readInt`.
+
+### 3.1. EBNF-грамматика
+
+```ebnf
+program = "void", "main", "(", ")", "{", { statement }, "}";
+
+statement = print_statement | expression_statement;
+print_statement = "print", "(", expression, ")", ";";
+expression_statement = expression, ";";
+
+expression = additive_expression;
+additive_expression = multiplicative_expression,
+    { ("+" | "-"), multiplicative_expression };
+multiplicative_expression = unary_expression,
+    { ("*" | "/" | "%"), unary_expression };
+unary_expression = { "+" | "-" }, primary_expression;
+primary_expression = integer_literal
+    | "(", expression, ")"
+    | "readInt", "(", ")";
+```
+
+### 3.2. Приоритеты операторов
+
+| Приоритет | Операторы | Ассоциативность |
+| --- | --- | --- |
+| 1 (высший) | унарные `+`, `-` | справа налево |
+| 2 | `*`, `/`, `%` | слева направо |
+| 3 (низший) | `+`, `-` | слева направо |
+
+Оператор `%` вычисляет остаток от целочисленного деления. `readInt()` считывает одно целое число из стандартного ввода. `print(expression)` выводит вычисленное число с переводом строки. Результат выражения-инструкции отбрасывается.
