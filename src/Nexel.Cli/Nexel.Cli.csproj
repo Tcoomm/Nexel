@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Nexel.Lexer\Nexel.Lexer.csproj" />
-    <ProjectReference Include="..\Nexel.Parser\Nexel.Parser.csproj" />
-    <ProjectReference Include="..\Nexel.Vm\Nexel.Vm.csproj" />
+    <ProjectReference Include="..\Nexel.Execution\Nexel.Execution.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
