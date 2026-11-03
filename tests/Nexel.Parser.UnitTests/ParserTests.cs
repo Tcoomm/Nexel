@@ -216,7 +216,7 @@ public sealed class ParserTests
     [Fact]
     public void ParseRequiresEndOfFile()
     {
-        Assert.Throws<ParserException>(() => Parse("void main() { } void main() { }"));
+        Assert.Throws<ParserException>(() => Parse("void main() { } trailing"));
     }
 
     public static TheoryData<string> InvalidPrograms()
@@ -230,7 +230,6 @@ public sealed class ParserTests
             "void main() { print 1); }",
             "void main() { print(1) }",
             "void main() { 1 + 2 }",
-            "int main() { }",
             "void main( { }",
             "void main() { print(1); } extra",
         };
@@ -241,6 +240,206 @@ public sealed class ParserTests
     public void ParseInvalidProgramsThrows(string source)
     {
         Assert.Throws<ParserException>(() => Parse(source));
+    }
+
+    [Fact]
+    public void ParseEmptySourceProducesEmptyProgram()
+    {
+        ProgramNode program = Parse(string.Empty);
+
+        Assert.Empty(program.Declarations);
+        Assert.Equal(new AstPosition(1, 1), program.Position);
+    }
+
+    [Fact]
+    public void ParseGlobalVariableWithArithmeticInitializer()
+    {
+        ProgramNode program = Parse("int value = (2 + 3) * -4; void main() { }");
+        VariableDeclaration variable = Assert.IsType<VariableDeclaration>(program.Declarations[0]);
+        BinaryExpression multiply = Assert.IsType<BinaryExpression>(variable.Initializer);
+        BinaryExpression add = Assert.IsType<BinaryExpression>(multiply.Left);
+        UnaryExpression negate = Assert.IsType<UnaryExpression>(multiply.Right);
+
+        Assert.Equal(LangType.Int, variable.Type);
+        Assert.Equal("value", variable.Name);
+        Assert.Equal(new AstPosition(1, 5), variable.Position);
+        Assert.Equal(BinaryOperator.Multiply, multiply.Operator);
+        Assert.Equal(BinaryOperator.Add, add.Operator);
+        Assert.Equal(2, Assert.IsType<IntegerLiteralExpression>(add.Left).Value);
+        Assert.Equal(3, Assert.IsType<IntegerLiteralExpression>(add.Right).Value);
+        Assert.Equal(UnaryOperator.Negate, negate.Operator);
+        Assert.Equal(4, Assert.IsType<IntegerLiteralExpression>(negate.Operand).Value);
+    }
+
+    [Fact]
+    public void ParseDeclarationsPreserveSourceOrder()
+    {
+        ProgramNode program = Parse("int first = 1; void main() { } int second = 2;");
+
+        Assert.Equal(3, program.Declarations.Count);
+        Assert.Equal("first", Assert.IsType<VariableDeclaration>(program.Declarations[0]).Name);
+        Assert.Equal("main", Assert.IsType<FunctionDeclaration>(program.Declarations[1]).Name);
+        Assert.Equal("second", Assert.IsType<VariableDeclaration>(program.Declarations[2]).Name);
+    }
+
+    [Fact]
+    public void ParseFunctionParametersAndReturnExpression()
+    {
+        ProgramNode program = Parse("int sum(int left, int right) { return left + right; }");
+        FunctionDeclaration function = Assert.IsType<FunctionDeclaration>(Assert.Single(program.Declarations));
+        ReturnStatement statement = Assert.IsType<ReturnStatement>(Assert.Single(function.Body.Statements));
+        BinaryExpression result = Assert.IsType<BinaryExpression>(statement.Value);
+
+        Assert.Equal("sum", function.Name);
+        Assert.Equal(LangType.Int, function.ReturnType);
+        Assert.Equal(2, function.Parameters.Count);
+        Assert.Equal("left", function.Parameters[0].Name);
+        Assert.Equal("right", function.Parameters[1].Name);
+        Assert.Equal(new AstPosition(1, 13), function.Parameters[0].Position);
+        Assert.Equal("left", Assert.IsType<VariableExpression>(result.Left).Name);
+        Assert.Equal("right", Assert.IsType<VariableExpression>(result.Right).Name);
+    }
+
+    [Fact]
+    public void ParseVoidFunctionWithEmptyReturn()
+    {
+        ProgramNode program = Parse("void notify() { return; }");
+        FunctionDeclaration function = Assert.IsType<FunctionDeclaration>(Assert.Single(program.Declarations));
+        ReturnStatement statement = Assert.IsType<ReturnStatement>(Assert.Single(function.Body.Statements));
+
+        Assert.Equal(LangType.Void, function.ReturnType);
+        Assert.Empty(function.Parameters);
+        Assert.Null(statement.Value);
+    }
+
+    [Fact]
+    public void ParseFunctionBeforeAndAfterMain()
+    {
+        ProgramNode program = Parse("int one() { return 1; } void main() { } int two() { return 2; }");
+
+        Assert.Equal(3, program.Declarations.Count);
+        Assert.Equal("one", Assert.IsType<FunctionDeclaration>(program.Declarations[0]).Name);
+        Assert.Equal("main", Assert.IsType<FunctionDeclaration>(program.Declarations[1]).Name);
+        Assert.Equal("two", Assert.IsType<FunctionDeclaration>(program.Declarations[2]).Name);
+    }
+
+    [Fact]
+    public void ParseLocalDeclarationAndAssignment()
+    {
+        FunctionDeclaration main = ParseMain("int value = readInt(); value = value + 1; print(value);");
+        VariableDeclarationStatement declaration =
+            Assert.IsType<VariableDeclarationStatement>(main.Body.Statements[0]);
+        AssignmentStatement assignment = Assert.IsType<AssignmentStatement>(main.Body.Statements[1]);
+        ExpressionStatement print = Assert.IsType<ExpressionStatement>(main.Body.Statements[2]);
+        BinaryExpression increment = Assert.IsType<BinaryExpression>(assignment.Value);
+
+        Assert.Equal("value", declaration.Declaration.Name);
+        Assert.Equal(LangType.Int, declaration.Declaration.Type);
+        Assert.IsType<CallExpression>(declaration.Declaration.Initializer);
+        Assert.Equal("value", assignment.Name);
+        Assert.Equal("value", Assert.IsType<VariableExpression>(increment.Left).Name);
+        Assert.Equal(1, Assert.IsType<IntegerLiteralExpression>(increment.Right).Value);
+        Assert.IsType<CallExpression>(print.Expression);
+    }
+
+    [Fact]
+    public void ParseNestedBlocksWithShadowedVariable()
+    {
+        FunctionDeclaration main = ParseMain("int x = 1; { int x = 2; print(x); } print(x);");
+        BlockStatement nested = Assert.IsType<BlockStatement>(main.Body.Statements[1]);
+        VariableDeclarationStatement inner =
+            Assert.IsType<VariableDeclarationStatement>(nested.Statements[0]);
+        ExpressionStatement innerPrint = Assert.IsType<ExpressionStatement>(nested.Statements[1]);
+        CallExpression call = Assert.IsType<CallExpression>(innerPrint.Expression);
+
+        Assert.Equal(3, main.Body.Statements.Count);
+        Assert.Equal(2, nested.Statements.Count);
+        Assert.Equal("x", inner.Declaration.Name);
+        Assert.Equal("x", Assert.IsType<VariableExpression>(Assert.Single(call.Arguments)).Name);
+    }
+
+    [Fact]
+    public void ParseStandaloneCallAsExpressionStatement()
+    {
+        ExpressionStatement statement =
+            Assert.IsType<ExpressionStatement>(Assert.Single(ParseMain("notify();").Body.Statements));
+        CallExpression call = Assert.IsType<CallExpression>(statement.Expression);
+
+        Assert.Equal("notify", call.Name);
+        Assert.Empty(call.Arguments);
+    }
+
+    [Fact]
+    public void ParseReturnInNestedBlock()
+    {
+        FunctionDeclaration main = ParseMain("{ return 7; }");
+        BlockStatement block = Assert.IsType<BlockStatement>(Assert.Single(main.Body.Statements));
+        ReturnStatement statement = Assert.IsType<ReturnStatement>(Assert.Single(block.Statements));
+
+        Assert.Equal(7, Assert.IsType<IntegerLiteralExpression>(statement.Value).Value);
+    }
+
+    [Fact]
+    public void ParsePositionsOfDeclarationsAndReturn()
+    {
+        string source = "int count = 1;\nint sum(int value) {\n    return value + 2;\n}";
+        ProgramNode program = Parse(source);
+        VariableDeclaration global = Assert.IsType<VariableDeclaration>(program.Declarations[0]);
+        FunctionDeclaration function = Assert.IsType<FunctionDeclaration>(program.Declarations[1]);
+        ReturnStatement result = Assert.IsType<ReturnStatement>(Assert.Single(function.Body.Statements));
+        BinaryExpression add = Assert.IsType<BinaryExpression>(result.Value);
+
+        Assert.Equal(new AstPosition(1, 1), program.Position);
+        Assert.Equal(new AstPosition(1, 5), global.Position);
+        Assert.Equal(new AstPosition(2, 5), function.Position);
+        Assert.Equal(new AstPosition(2, 13), function.Parameters[0].Position);
+        Assert.Equal(new AstPosition(3, 5), result.Position);
+        Assert.Equal(new AstPosition(3, 18), add.Position);
+    }
+
+    [Theory]
+    [InlineData("int value = readInt(); void main() { }")]
+    [InlineData("int value = 1; int next = value + 2; void main() { }")]
+    [InlineData("int value = (3 + abs(1)); void main() { }")]
+    public void ParseGlobalInitializerCannotUseNamesOrCalls(string source)
+    {
+        Assert.Throws<ParserException>(() => Parse(source));
+    }
+
+    [Theory]
+    [InlineData("int value; void main() { }")]
+    [InlineData("void value = 1; void main() { }")]
+    [InlineData("int value = ; void main() { }")]
+    [InlineData("int sum(int a,) { return a; }")]
+    [InlineData("int sum(void a) { return 1; }")]
+    [InlineData("int sum(int a int b) { return a; }")]
+    [InlineData("void main() { int x; }")]
+    [InlineData("void main() { x = ; }")]
+    [InlineData("void main() { int x = 1; x = x = 2; }")]
+    [InlineData("void main() { return 1 }")]
+    [InlineData("void main() { { return; }")]
+    [InlineData("void main() { int nested() { return 1; } }")]
+    [InlineData("int value = 1; garbage")]
+    public void ParseMalformedVariablesFunctionsOrBlocksThrows(string source)
+    {
+        Assert.Throws<ParserException>(() => Parse(source));
+    }
+
+    [Fact]
+    public void ParseDuplicateFunctionsWithoutSemanticValidation()
+    {
+        ProgramNode program = Parse("void main() { } void main() { }");
+
+        Assert.Equal(2, program.Declarations.Count);
+    }
+
+    [Fact]
+    public void ParseUnknownFunctionWithoutSemanticValidation()
+    {
+        FunctionDeclaration main = ParseMain("missing(1);");
+        ExpressionStatement statement = Assert.IsType<ExpressionStatement>(Assert.Single(main.Body.Statements));
+
+        Assert.Equal("missing", Assert.IsType<CallExpression>(statement.Expression).Name);
     }
 
     private static ProgramNode Parse(string source)
