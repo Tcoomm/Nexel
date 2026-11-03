@@ -21,7 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nexel.Parser\Nexel.Parser.csproj" />
     <ProjectReference Include="..\..\src\Nexel.Lexer\Nexel.Lexer.csproj" />
-    <ProjectReference Include="..\..\src\Nexel.Vm\Nexel.Vm.csproj" />
+    <ProjectReference Include="..\..\src\Nexel.Ast\Nexel.Ast.csproj" />
   </ItemGroup>
 
 </Project>
