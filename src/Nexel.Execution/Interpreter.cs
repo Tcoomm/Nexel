@@ -1,10 +1,11 @@
-namespace Nexel.Execution;
+﻿namespace Nexel.Execution;
 
-using System.Collections.Generic;
-
+using System.IO;
+using Nexel.Ast;
 using Nexel.Lexer;
 using Nexel.Parser;
 using Nexel.Vm;
+using Nexel.VmCodegen;
 
 public sealed class Interpreter
 {
@@ -15,7 +16,9 @@ public sealed class Interpreter
         ArgumentNullException.ThrowIfNull(output);
 
         IReadOnlyList<Token> tokens = new Lexer(source).Tokenize();
-        IReadOnlyList<Instruction> instructions = new Parser(tokens).ParseProgram();
-        new VirtualMachine().Execute(instructions, input, output);
+        ProgramNode programNode = new Parser(tokens).ParseProgram();
+        VmProgram vmProgram = new VmCodeGenerator().Generate(programNode);
+        
+        new VirtualMachine().Execute(vmProgram, input, output);
     }
 }
