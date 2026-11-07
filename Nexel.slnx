@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Nexel.Cli/Nexel.Cli.csproj" />
+    <Project Path="src/Nexel.Execution/Nexel.Execution.csproj" />
     <Project Path="src/Nexel.Lexer/Nexel.Lexer.csproj" />
     <Project Path="src/Nexel.Parser/Nexel.Parser.csproj" />
     <Project Path="src/Nexel.Vm/Nexel.Vm.csproj" />
