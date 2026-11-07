@@ -4,25 +4,6 @@ using System.Globalization;
 
 public sealed class VirtualMachine
 {
-    private sealed class CallFrame
-    {
-        public CallFrame(int functionIndex, int returnAddress, int localCount, int stackBase)
-        {
-            FunctionIndex = functionIndex;
-            ReturnAddress = returnAddress;
-            Locals = new int[localCount];
-            StackBase = stackBase;
-        }
-
-        public int FunctionIndex { get; }
-
-        public int ReturnAddress { get; }
-
-        public int[] Locals { get; }
-
-        public int StackBase { get; }
-    }
-
     public void Execute(
         IReadOnlyList<Instruction> program,
         TextReader input,
@@ -330,10 +311,6 @@ public sealed class VirtualMachine
                         throw new VmException($"Unknown VM instruction: {(int)instruction.Code}.");
                 }
             }
-            catch (VmException)
-            {
-                throw;
-            }
             catch (OverflowException exception)
             {
                 throw new VmException(
@@ -386,5 +363,24 @@ public sealed class VirtualMachine
         {
             throw new VmException($"Invalid {slotKind} slot index: {slot}.");
         }
+    }
+
+    private sealed class CallFrame
+    {
+        public CallFrame(int functionIndex, int returnAddress, int localCount, int stackBase)
+        {
+            FunctionIndex = functionIndex;
+            ReturnAddress = returnAddress;
+            Locals = new int[localCount];
+            StackBase = stackBase;
+        }
+
+        public int FunctionIndex { get; }
+
+        public int ReturnAddress { get; }
+
+        public int[] Locals { get; }
+
+        public int StackBase { get; }
     }
 }

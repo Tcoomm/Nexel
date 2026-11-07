@@ -5,45 +5,6 @@ using Nexel.Vm;
 
 public sealed class VmCodeGenerator : IAstVisitor
 {
-    private sealed record BuiltinFunctionInfo(
-        string Name,
-        int ParameterCount,
-        LangType ReturnType,
-        OpCode OpCode);
-
-    private sealed class FunctionMetadata
-    {
-        public FunctionMetadata(
-            string name,
-            int index,
-            int parameterCount,
-            LangType returnType,
-            FunctionDeclaration? declaration)
-        {
-            Name = name;
-            Index = index;
-            ParameterCount = parameterCount;
-            ReturnType = returnType;
-            Declaration = declaration;
-        }
-
-        public string Name { get; }
-
-        public int Index { get; }
-
-        public int ParameterCount { get; }
-
-        public LangType ReturnType { get; }
-
-        public bool ReturnsValue => ReturnType == LangType.Int;
-
-        public FunctionDeclaration? Declaration { get; }
-
-        public int EntryPoint { get; set; }
-
-        public int LocalCount { get; set; }
-    }
-
     private static readonly IReadOnlyDictionary<string, BuiltinFunctionInfo> Builtins =
         new Dictionary<string, BuiltinFunctionInfo>(StringComparer.Ordinal)
         {
@@ -594,5 +555,44 @@ public sealed class VmCodeGenerator : IAstVisitor
     private void Emit(Instruction instruction)
     {
         _instructions.Add(instruction);
+    }
+
+    private sealed record BuiltinFunctionInfo(
+        string Name,
+        int ParameterCount,
+        LangType ReturnType,
+        OpCode OpCode);
+
+    private sealed class FunctionMetadata
+    {
+        public FunctionMetadata(
+            string name,
+            int index,
+            int parameterCount,
+            LangType returnType,
+            FunctionDeclaration? declaration)
+        {
+            Name = name;
+            Index = index;
+            ParameterCount = parameterCount;
+            ReturnType = returnType;
+            Declaration = declaration;
+        }
+
+        public string Name { get; }
+
+        public int Index { get; }
+
+        public int ParameterCount { get; }
+
+        public LangType ReturnType { get; }
+
+        public bool ReturnsValue => ReturnType == LangType.Int;
+
+        public FunctionDeclaration? Declaration { get; }
+
+        public int EntryPoint { get; set; }
+
+        public int LocalCount { get; set; }
     }
 }
