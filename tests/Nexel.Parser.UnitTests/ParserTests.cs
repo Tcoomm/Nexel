@@ -31,12 +31,20 @@ public sealed class ParserTests
         Assert.Equal(5, number.Value);
     }
 
+    public static TheoryData<string, BinaryOperator, int, int> ParseBinaryOperatorCases()
+    {
+        return new TheoryData<string, BinaryOperator, int, int>
+        {
+            { "print(2 + 3);", BinaryOperator.Add, 2, 3 },
+            { "print(7 - 4);", BinaryOperator.Subtract, 7, 4 },
+            { "print(3 * 4);", BinaryOperator.Multiply, 3, 4 },
+            { "print(20 / 5);", BinaryOperator.Divide, 20, 5 },
+            { "print(17 % 5);", BinaryOperator.Modulo, 17, 5 },
+        };
+    }
+
     [Theory]
-    [InlineData("print(2 + 3);", BinaryOperator.Add, 2, 3)]
-    [InlineData("print(7 - 4);", BinaryOperator.Subtract, 7, 4)]
-    [InlineData("print(3 * 4);", BinaryOperator.Multiply, 3, 4)]
-    [InlineData("print(20 / 5);", BinaryOperator.Divide, 20, 5)]
-    [InlineData("print(17 % 5);", BinaryOperator.Modulo, 17, 5)]
+    [MemberData(nameof(ParseBinaryOperatorCases))]
     public void ParseBinaryOperator(string source, BinaryOperator op, int left, int right)
     {
         BinaryExpression expression = Assert.IsType<BinaryExpression>(PrintArgument(source));
@@ -397,29 +405,45 @@ public sealed class ParserTests
         Assert.Equal(new AstPosition(3, 18), add.Position);
     }
 
+    public static TheoryData<string> ParseGlobalInitializerCannotUseNamesOrCallsCases()
+    {
+        return new TheoryData<string>
+        {
+            { "int value = readInt(); void main() { }" },
+            { "int value = 1; int next = value + 2; void main() { }" },
+            { "int value = (3 + abs(1)); void main() { }" },
+        };
+    }
+
     [Theory]
-    [InlineData("int value = readInt(); void main() { }")]
-    [InlineData("int value = 1; int next = value + 2; void main() { }")]
-    [InlineData("int value = (3 + abs(1)); void main() { }")]
+    [MemberData(nameof(ParseGlobalInitializerCannotUseNamesOrCallsCases))]
     public void ParseGlobalInitializerCannotUseNamesOrCalls(string source)
     {
         Assert.Throws<ParserException>(() => Parse(source));
     }
 
+    public static TheoryData<string> ParseMalformedVariablesFunctionsOrBlocksThrowsCases()
+    {
+        return new TheoryData<string>
+        {
+            { "int value; void main() { }" },
+            { "void value = 1; void main() { }" },
+            { "int value = ; void main() { }" },
+            { "int sum(int a,) { return a; }" },
+            { "int sum(void a) { return 1; }" },
+            { "int sum(int a int b) { return a; }" },
+            { "void main() { int x; }" },
+            { "void main() { x = ; }" },
+            { "void main() { int x = 1; x = x = 2; }" },
+            { "void main() { return 1 }" },
+            { "void main() { { return; }" },
+            { "void main() { int nested() { return 1; } }" },
+            { "int value = 1; garbage" },
+        };
+    }
+
     [Theory]
-    [InlineData("int value; void main() { }")]
-    [InlineData("void value = 1; void main() { }")]
-    [InlineData("int value = ; void main() { }")]
-    [InlineData("int sum(int a,) { return a; }")]
-    [InlineData("int sum(void a) { return 1; }")]
-    [InlineData("int sum(int a int b) { return a; }")]
-    [InlineData("void main() { int x; }")]
-    [InlineData("void main() { x = ; }")]
-    [InlineData("void main() { int x = 1; x = x = 2; }")]
-    [InlineData("void main() { return 1 }")]
-    [InlineData("void main() { { return; }")]
-    [InlineData("void main() { int nested() { return 1; } }")]
-    [InlineData("int value = 1; garbage")]
+    [MemberData(nameof(ParseMalformedVariablesFunctionsOrBlocksThrowsCases))]
     public void ParseMalformedVariablesFunctionsOrBlocksThrows(string source)
     {
         Assert.Throws<ParserException>(() => Parse(source));

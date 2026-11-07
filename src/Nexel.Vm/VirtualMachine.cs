@@ -186,7 +186,7 @@ public sealed class VirtualMachine
                     case OpCode.Print:
                     {
                         int value = PopValue(stack, currentFrame);
-                        output.WriteLine(value);
+                        output.WriteLine(value.ToString(CultureInfo.InvariantCulture));
                         break;
                     }
 

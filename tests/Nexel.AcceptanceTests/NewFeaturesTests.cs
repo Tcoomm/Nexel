@@ -1,6 +1,10 @@
 namespace Nexel.AcceptanceTests;
 
 using Nexel.Execution;
+using Nexel.Parser;
+using Nexel.Vm;
+using Nexel.VmCodegen;
+
 using Xunit;
 
 public sealed class NewFeaturesTests
@@ -156,9 +160,17 @@ public sealed class NewFeaturesTests
         Assert.Equal("307\n", Run(source));
     }
 
+    public static TheoryData<string> DuplicateParameterOrParameterRedeclarationIsRejectedCases()
+    {
+        return new TheoryData<string>
+        {
+            { "int invalid(int value, int value) { return value; } void main() { }" },
+            { "int invalid(int value) { int value = 2; return value; } void main() { }" },
+        };
+    }
+
     [Theory]
-    [InlineData("int invalid(int value, int value) { return value; } void main() { }")]
-    [InlineData("int invalid(int value) { int value = 2; return value; } void main() { }")]
+    [MemberData(nameof(DuplicateParameterOrParameterRedeclarationIsRejectedCases))]
     public void DuplicateParameterOrParameterRedeclarationIsRejected(string source)
     {
         AssertCodegenFailure(source);
@@ -299,10 +311,18 @@ public sealed class NewFeaturesTests
         Assert.Equal("7\n", Run(source));
     }
 
+    public static TheoryData<string> FunctionReturnMustMatchDeclaredReturnTypeCases()
+    {
+        return new TheoryData<string>
+        {
+            { "int invalid() { print(1); } void main() { }" },
+            { "int invalid() { return; } void main() { }" },
+            { "void invalid() { return 1; } void main() { }" },
+        };
+    }
+
     [Theory]
-    [InlineData("int invalid() { print(1); } void main() { }")]
-    [InlineData("int invalid() { return; } void main() { }")]
-    [InlineData("void invalid() { return 1; } void main() { }")]
+    [MemberData(nameof(FunctionReturnMustMatchDeclaredReturnTypeCases))]
     public void FunctionReturnMustMatchDeclaredReturnType(string source)
     {
         AssertCodegenFailure(source);
@@ -361,10 +381,18 @@ public sealed class NewFeaturesTests
         Assert.Equal("7\n", Run(source, "10\n3\n"));
     }
 
+    public static TheoryData<int, int> AbsReturnsAbsoluteValueCases()
+    {
+        return new TheoryData<int, int>
+        {
+            { 5, 5 },
+            { -5, 5 },
+            { 0, 0 },
+        };
+    }
+
     [Theory]
-    [InlineData(5, 5)]
-    [InlineData(-5, 5)]
-    [InlineData(0, 0)]
+    [MemberData(nameof(AbsReturnsAbsoluteValueCases))]
     public void AbsReturnsAbsoluteValue(int value, int expected)
     {
         string source = $"void main() {{ print(abs({value})); }}";
@@ -387,13 +415,21 @@ public sealed class NewFeaturesTests
         Assert.Equal("3\n7\n4\n4\n", Run(source));
     }
 
+    public static TheoryData<string> FunctionsRequireExactArityCases()
+    {
+        return new TheoryData<string>
+        {
+            { "void main() { print(readInt(1)); }" },
+            { "void main() { print(); }" },
+            { "void main() { print(abs(1, 2)); }" },
+            { "void main() { print(min(1)); }" },
+            { "void main() { print(max(1, 2, 3)); }" },
+            { "int add(int left, int right) { return left + right; } void main() { print(add(1)); }" },
+        };
+    }
+
     [Theory]
-    [InlineData("void main() { print(readInt(1)); }")]
-    [InlineData("void main() { print(); }")]
-    [InlineData("void main() { print(abs(1, 2)); }")]
-    [InlineData("void main() { print(min(1)); }")]
-    [InlineData("void main() { print(max(1, 2, 3)); }")]
-    [InlineData("int add(int left, int right) { return left + right; } void main() { print(add(1)); }")]
+    [MemberData(nameof(FunctionsRequireExactArityCases))]
     public void FunctionsRequireExactArity(string source)
     {
         AssertCodegenFailure(source);
@@ -411,44 +447,76 @@ public sealed class NewFeaturesTests
         AssertVmFailure(source);
     }
 
+    public static TheoryData<string> UnknownOrConflictingNamesAreRejectedCases()
+    {
+        return new TheoryData<string>
+        {
+            { "void main() { print(unknown); }" },
+            { "void main() { print(unknown()); }" },
+            { "void main() { print(value); int value = 1; }" },
+            { "void main() { int value = 1; int value = 2; }" },
+            { "int value = 1; int value = 2; void main() { }" },
+            { "int item = 1; int item() { return 1; } void main() { }" },
+            { "int helper() { return 1; } int helper() { return 2; } void main() { }" },
+            { "int abs(int value) { return value; } void main() { }" },
+            { "void main() { main(); }" },
+        };
+    }
+
     [Theory]
-    [InlineData("void main() { print(unknown); }")]
-    [InlineData("void main() { print(unknown()); }")]
-    [InlineData("void main() { print(value); int value = 1; }")]
-    [InlineData("void main() { int value = 1; int value = 2; }")]
-    [InlineData("int value = 1; int value = 2; void main() { }")]
-    [InlineData("int item = 1; int item() { return 1; } void main() { }")]
-    [InlineData("int helper() { return 1; } int helper() { return 2; } void main() { }")]
-    [InlineData("int abs(int value) { return value; } void main() { }")]
-    [InlineData("void main() { main(); }")]
+    [MemberData(nameof(UnknownOrConflictingNamesAreRejectedCases))]
     public void UnknownOrConflictingNamesAreRejected(string source)
     {
         AssertCodegenFailure(source);
     }
 
+    public static TheoryData<string> LocalVariablesAndParametersCannotUseFunctionNamesCases()
+    {
+        return new TheoryData<string>
+        {
+            { "void main() { int main = 1; }" },
+            { "void main() { int print = 1; }" },
+            { "int helper() { return 1; } void main() { int helper = 1; }" },
+            { "int helper(int print) { return print; } void main() { }" },
+        };
+    }
+
     [Theory]
-    [InlineData("void main() { int main = 1; }")]
-    [InlineData("void main() { int print = 1; }")]
-    [InlineData("int helper() { return 1; } void main() { int helper = 1; }")]
-    [InlineData("int helper(int print) { return print; } void main() { }")]
+    [MemberData(nameof(LocalVariablesAndParametersCannotUseFunctionNamesCases))]
     public void LocalVariablesAndParametersCannotUseFunctionNames(string source)
     {
         AssertCodegenFailure(source);
     }
 
+    public static TheoryData<string> VoidCallCannotBeUsedAsAnIntValueCases()
+    {
+        return new TheoryData<string>
+        {
+            { "void noValue() { } void main() { print(noValue() + 1); }" },
+            { "void noValue() { } int accept(int value) { return value; } void main() { print(accept(noValue())); }" },
+            { "void noValue() { } void main() { int value = noValue(); }" },
+            { "void noValue() { } int getValue() { return noValue(); } void main() { print(getValue()); }" },
+        };
+    }
+
     [Theory]
-    [InlineData("void noValue() { } void main() { print(noValue() + 1); }")]
-    [InlineData("void noValue() { } int accept(int value) { return value; } void main() { print(accept(noValue())); }")]
-    [InlineData("void noValue() { } void main() { int value = noValue(); }")]
-    [InlineData("void noValue() { } int getValue() { return noValue(); } void main() { print(getValue()); }")]
+    [MemberData(nameof(VoidCallCannotBeUsedAsAnIntValueCases))]
     public void VoidCallCannotBeUsedAsAnIntValue(string source)
     {
         AssertCodegenFailure(source);
     }
 
+    public static TheoryData<string> GlobalInitializerCannotReadNamesOrCallFunctionsCases()
+    {
+        return new TheoryData<string>
+        {
+            { "int first = 1; int second = first + 1; void main() { }" },
+            { "int value = readInt(); void main() { }" },
+        };
+    }
+
     [Theory]
-    [InlineData("int first = 1; int second = first + 1; void main() { }")]
-    [InlineData("int value = readInt(); void main() { }")]
+    [MemberData(nameof(GlobalInitializerCannotReadNamesOrCallFunctionsCases))]
     public void GlobalInitializerCannotReadNamesOrCallFunctions(string source)
     {
         AssertParserFailure(source);
@@ -467,25 +535,21 @@ public sealed class NewFeaturesTests
         using StringReader input = new StringReader(string.Empty);
         using StringWriter output = new StringWriter();
 
-        Exception exception = Assert.ThrowsAny<Exception>(
+        Assert.Throws<CodegenException>(
             () => new Interpreter().Execute(source, input, output));
-
-        Assert.Equal("CodegenException", exception.GetType().Name);
         Assert.Equal(string.Empty, output.ToString());
     }
 
-    [Theory]
-    [InlineData("-4\n5\n", "20\n")]
-    public void RectangleAreaProgramProducesExpectedOutput(string input, string expectedOutput)
+    [Fact]
+    public void RectangleAreaProgramProducesExpectedOutput()
     {
-        Assert.Equal(expectedOutput, Run(RectangleAreaProgram, input));
+        Assert.Equal("20\n", Run(RectangleAreaProgram, "-4\n5\n"));
     }
 
-    [Theory]
-    [InlineData("200\n3\n", "690\n")]
-    public void OrderCostProgramProducesExpectedOutput(string input, string expectedOutput)
+    [Fact]
+    public void OrderCostProgramProducesExpectedOutput()
     {
-        Assert.Equal(expectedOutput, Run(OrderCostProgram, input));
+        Assert.Equal("690\n", Run(OrderCostProgram, "200\n3\n"));
     }
 
     private static string Run(string source, string input = "")
@@ -503,10 +567,8 @@ public sealed class NewFeaturesTests
         using StringReader reader = new StringReader(string.Empty);
         using StringWriter writer = new StringWriter();
 
-        Exception exception = Assert.ThrowsAny<Exception>(
+        Assert.Throws<CodegenException>(
             () => new Interpreter().Execute(source, reader, writer));
-
-        Assert.Equal("CodegenException", exception.GetType().Name);
     }
 
     private static void AssertParserFailure(string source)
@@ -514,10 +576,8 @@ public sealed class NewFeaturesTests
         using StringReader reader = new StringReader(string.Empty);
         using StringWriter writer = new StringWriter();
 
-        Exception exception = Assert.ThrowsAny<Exception>(
+        Assert.Throws<ParserException>(
             () => new Interpreter().Execute(source, reader, writer));
-
-        Assert.Equal("ParserException", exception.GetType().Name);
     }
 
     private static void AssertVmFailure(string source)
@@ -525,9 +585,7 @@ public sealed class NewFeaturesTests
         using StringReader reader = new StringReader(string.Empty);
         using StringWriter writer = new StringWriter();
 
-        Exception exception = Assert.ThrowsAny<Exception>(
+        Assert.Throws<VmException>(
             () => new Interpreter().Execute(source, reader, writer));
-
-        Assert.Equal("VmException", exception.GetType().Name);
     }
 }

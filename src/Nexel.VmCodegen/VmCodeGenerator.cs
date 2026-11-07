@@ -8,11 +8,11 @@ public sealed class VmCodeGenerator : IAstVisitor
     private static readonly IReadOnlyDictionary<string, BuiltinFunctionInfo> Builtins =
         new Dictionary<string, BuiltinFunctionInfo>(StringComparer.Ordinal)
         {
-            ["readInt"] = new BuiltinFunctionInfo("readInt", 0, LangType.Int, OpCode.ReadInt),
-            ["print"] = new BuiltinFunctionInfo("print", 1, LangType.Void, OpCode.Print),
-            ["abs"] = new BuiltinFunctionInfo("abs", 1, LangType.Int, OpCode.Abs),
-            ["min"] = new BuiltinFunctionInfo("min", 2, LangType.Int, OpCode.Min),
-            ["max"] = new BuiltinFunctionInfo("max", 2, LangType.Int, OpCode.Max),
+            ["readInt"] = new BuiltinFunctionInfo(0, LangType.Int, OpCode.ReadInt),
+            ["print"] = new BuiltinFunctionInfo(1, LangType.Void, OpCode.Print),
+            ["abs"] = new BuiltinFunctionInfo(1, LangType.Int, OpCode.Abs),
+            ["min"] = new BuiltinFunctionInfo(2, LangType.Int, OpCode.Min),
+            ["max"] = new BuiltinFunctionInfo(2, LangType.Int, OpCode.Max),
         };
 
     private readonly List<Instruction> _instructions = new List<Instruction>();
@@ -558,7 +558,6 @@ public sealed class VmCodeGenerator : IAstVisitor
     }
 
     private sealed record BuiltinFunctionInfo(
-        string Name,
         int ParameterCount,
         LangType ReturnType,
         OpCode OpCode);
