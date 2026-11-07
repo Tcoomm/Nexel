@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nexel.Execution\Nexel.Execution.csproj" />
+    <ProjectReference Include="..\Nexel.VmCodegen\Nexel.VmCodegen.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

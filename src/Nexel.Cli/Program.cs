@@ -2,6 +2,7 @@ using Nexel.Execution;
 using Nexel.Lexer;
 using Nexel.Parser;
 using Nexel.Vm;
+using Nexel.VmCodegen;
 
 if (args.Length != 1)
 {
@@ -20,6 +21,10 @@ catch (LexerException ex)
     Console.Error.WriteLine(ex.Message);
 }
 catch (ParserException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+}
+catch (CodegenException ex)
 {
     Console.Error.WriteLine(ex.Message);
 }
