@@ -1,4 +1,4 @@
-namespace Nexel.Vm;
+﻿namespace Nexel.Vm;
 
 public enum OpCode
 {
@@ -12,4 +12,13 @@ public enum OpCode
     Pop,
     ReadInt,
     Print,
+    LoadLocal,
+    StoreLocal,
+    LoadGlobal,
+    StoreGlobal,
+    Call,
+    Return,
+    Abs,
+    Min,
+    Max,
 }

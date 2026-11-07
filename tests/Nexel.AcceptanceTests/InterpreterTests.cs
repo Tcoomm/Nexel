@@ -1,3 +1,4 @@
+using Nexel.Execution;
 using Nexel.Lexer;
 using Nexel.Parser;
 using Nexel.Vm;
@@ -52,14 +53,10 @@ public sealed class InterpreterTests
 
     private static string Run(string source, string input)
     {
-        IReadOnlyList<Token> tokens = new global::Nexel.Lexer.Lexer(source).Tokenize();
-        IReadOnlyList<Instruction> instructions =
-            new global::Nexel.Parser.Parser(tokens).ParseProgram();
-
         using StringReader reader = new StringReader(input);
         using StringWriter writer = new StringWriter();
 
-        new VirtualMachine().Execute(instructions, reader, writer);
+        new Interpreter().Execute(source, reader, writer);
 
         return writer.ToString().Replace("\r\n", "\n");
     }

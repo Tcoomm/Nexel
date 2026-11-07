@@ -1,6 +1,8 @@
-﻿using Nexel.Lexer;
+using Nexel.Execution;
+using Nexel.Lexer;
 using Nexel.Parser;
 using Nexel.Vm;
+using Nexel.VmCodegen;
 
 if (args.Length != 1)
 {
@@ -11,16 +13,7 @@ if (args.Length != 1)
 try
 {
     string source = File.ReadAllText(args[0]);
-
-    IReadOnlyList<Token> tokens = new Lexer(source).Tokenize();
-    IReadOnlyList<Instruction> instructions =
-        new Parser(tokens).ParseProgram();
-
-    new VirtualMachine().Execute(
-        instructions,
-        Console.In,
-        Console.Out);
-
+    new Interpreter().Execute(source, Console.In, Console.Out);
     return 0;
 }
 catch (LexerException ex)
@@ -28,6 +21,10 @@ catch (LexerException ex)
     Console.Error.WriteLine(ex.Message);
 }
 catch (ParserException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+}
+catch (CodegenException ex)
 {
     Console.Error.WriteLine(ex.Message);
 }
