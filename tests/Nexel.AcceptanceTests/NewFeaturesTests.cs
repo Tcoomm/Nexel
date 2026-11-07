@@ -5,8 +5,6 @@ using Xunit;
 
 public sealed class NewFeaturesTests
 {
-    private const string SkipReason = "Ждёт AST и Codegen";
-
     private const string RectangleAreaProgram = """
         int area(int width, int height) {
             return abs(width) * abs(height);
@@ -40,7 +38,7 @@ public sealed class NewFeaturesTests
         }
         """;
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void LocalVariableCanBeReadAndAssigned()
     {
         string source = """
@@ -55,7 +53,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("1\n2\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void NestedBlockCanShadowOuterVariableWithoutChangingIt()
     {
         string source = """
@@ -72,7 +70,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("2\n1\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void LocalVariableIsNotVisibleAfterItsBlock()
     {
         string source = """
@@ -87,7 +85,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void FunctionCannotReadLocalVariableFromCaller()
     {
         string source = """
@@ -104,7 +102,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void FunctionReadsGlobalInsteadOfCallersShadowingLocal()
     {
         string source = """
@@ -123,7 +121,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("1\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void ParametersArePassedByValue()
     {
         string source = """
@@ -142,7 +140,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("6\n5\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void ParametersOccupySlotsInDeclarationOrder()
     {
         string source = """
@@ -158,7 +156,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("307\n", Run(source));
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("int invalid(int value, int value) { return value; } void main() { }")]
     [InlineData("int invalid(int value) { int value = 2; return value; } void main() { }")]
     public void DuplicateParameterOrParameterRedeclarationIsRejected(string source)
@@ -166,7 +164,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void NestedBlockCanShadowFunctionParameter()
     {
         string source = """
@@ -186,7 +184,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("2\n1\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void GlobalsAreInitializedBeforeMainAndCanBeChangedByFunctions()
     {
         string source = """
@@ -207,7 +205,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("42\n43\n43\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void LocalVariableCanShadowGlobalVariable()
     {
         string source = """
@@ -225,7 +223,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("2\n1\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void FunctionCanBeCalledBeforeItsDefinition()
     {
         string source = """
@@ -241,7 +239,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("5\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void FunctionsCanBeCalledWithoutArgumentsAndNestedInExpressions()
     {
         string source = """
@@ -266,7 +264,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("42\n10\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void VoidFunctionCanBeCalledAsAStatementAndReturnImplicitly()
     {
         string source = """
@@ -283,7 +281,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("7\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void ReturnInsideNestedBlockReturnsFromWholeFunction()
     {
         string source = """
@@ -301,7 +299,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("7\n", Run(source));
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("int invalid() { print(1); } void main() { }")]
     [InlineData("int invalid() { return; } void main() { }")]
     [InlineData("void invalid() { return 1; } void main() { }")]
@@ -310,7 +308,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void FunctionCallDoesNotCorruptEarlierStackOperand()
     {
         string source = """
@@ -326,7 +324,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("104\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void FunctionArgumentsAreEvaluatedFromLeftToRight()
     {
         string source = """
@@ -347,7 +345,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("1\n2\n12\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void ReadIntArgumentsAreEvaluatedFromLeftToRight()
     {
         string source = """
@@ -363,7 +361,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("7\n", Run(source, "10\n3\n"));
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData(5, 5)]
     [InlineData(-5, 5)]
     [InlineData(0, 0)]
@@ -374,7 +372,7 @@ public sealed class NewFeaturesTests
         Assert.Equal($"{expected}\n", Run(source));
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void MinAndMaxHandleOrdinaryAndEqualArguments()
     {
         string source = """
@@ -389,7 +387,7 @@ public sealed class NewFeaturesTests
         Assert.Equal("3\n7\n4\n4\n", Run(source));
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("void main() { print(readInt(1)); }")]
     [InlineData("void main() { print(); }")]
     [InlineData("void main() { print(abs(1, 2)); }")]
@@ -401,7 +399,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void AbsOfMinimumIntThrowsVmException()
     {
         string source = """
@@ -413,7 +411,7 @@ public sealed class NewFeaturesTests
         AssertVmFailure(source);
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("void main() { print(unknown); }")]
     [InlineData("void main() { print(unknown()); }")]
     [InlineData("void main() { print(value); int value = 1; }")]
@@ -428,7 +426,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("void main() { int main = 1; }")]
     [InlineData("void main() { int print = 1; }")]
     [InlineData("int helper() { return 1; } void main() { int helper = 1; }")]
@@ -438,7 +436,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("void noValue() { } void main() { print(noValue() + 1); }")]
     [InlineData("void noValue() { } int accept(int value) { return value; } void main() { print(accept(noValue())); }")]
     [InlineData("void noValue() { } void main() { int value = noValue(); }")]
@@ -448,7 +446,7 @@ public sealed class NewFeaturesTests
         AssertCodegenFailure(source);
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("int first = 1; int second = first + 1; void main() { }")]
     [InlineData("int value = readInt(); void main() { }")]
     public void GlobalInitializerCannotReadNamesOrCallFunctions(string source)
@@ -456,7 +454,7 @@ public sealed class NewFeaturesTests
         AssertParserFailure(source);
     }
 
-    [Fact(Skip = SkipReason)]
+    [Fact]
     public void SemanticErrorPreventsAllProgramOutput()
     {
         string source = """
@@ -476,14 +474,14 @@ public sealed class NewFeaturesTests
         Assert.Equal(string.Empty, output.ToString());
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("-4\n5\n", "20\n")]
     public void RectangleAreaProgramProducesExpectedOutput(string input, string expectedOutput)
     {
         Assert.Equal(expectedOutput, Run(RectangleAreaProgram, input));
     }
 
-    [Theory(Skip = SkipReason)]
+    [Theory]
     [InlineData("200\n3\n", "690\n")]
     public void OrderCostProgramProducesExpectedOutput(string input, string expectedOutput)
     {
