@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Nexel.Ast\Nexel.Ast.csproj" />
     <ProjectReference Include="..\Nexel.Lexer\Nexel.Lexer.csproj" />
-    <ProjectReference Include="..\Nexel.Vm\Nexel.Vm.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
