@@ -40,7 +40,7 @@ public sealed class CodegenTests
     }
 
     [Fact]
-    public void Generate_ArithmeticPrecedence_10Plus2Mul5_EmitsPushMulAdd()
+    public void Generate_NestedArithmeticExpression_EmitsStackOperations()
     {
         Expression expr = Bin(
             BinaryOperator.Add,
@@ -261,47 +261,76 @@ public sealed class CodegenTests
     }
 
     [Fact]
-    public void Generate_SemanticErrors_ThrowCodegenExceptionWithPosition()
+    public void Generate_UnknownVariable_ThrowsCodegenExceptionWithPosition()
     {
         AstPosition errorPos = new AstPosition(7, 13);
+        ProgramNode ast = MainProgram(ExprStmt(Call("print", new VariableExpression(errorPos, "missing"))));
 
-        ProgramNode unknownVar = MainProgram(ExprStmt(Call("print", new VariableExpression(errorPos, "missing"))));
-        CodegenException ex1 = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(unknownVar));
-        Assert.Equal(errorPos, ex1.Position);
+        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
 
-        ProgramNode selfInit = MainProgram(
+        Assert.Equal(errorPos, exception.Position);
+    }
+
+    [Fact]
+    public void Generate_SelfReferencingInitializer_ThrowsCodegenExceptionWithPosition()
+    {
+        AstPosition errorPos = new AstPosition(7, 13);
+        ProgramNode ast = MainProgram(
             new VariableDeclarationStatement(
                 errorPos,
                 new VariableDeclaration(errorPos, LangType.Int, "x", Bin(BinaryOperator.Add, new VariableExpression(errorPos, "x"), Lit(1)))));
-        CodegenException ex2 = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(selfInit));
-        Assert.Equal(errorPos, ex2.Position);
 
-        ProgramNode shadowFunc = MainProgram(
+        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
+
+        Assert.Equal(errorPos, exception.Position);
+    }
+
+    [Fact]
+    public void Generate_VariableConflictingWithBuiltin_ThrowsCodegenExceptionWithPosition()
+    {
+        AstPosition errorPos = new AstPosition(7, 13);
+        ProgramNode ast = MainProgram(
             new VariableDeclarationStatement(
                 errorPos,
                 new VariableDeclaration(errorPos, LangType.Int, "print", Lit(1))));
-        CodegenException ex3 = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(shadowFunc));
-        Assert.Equal(errorPos, ex3.Position);
 
-        ProgramNode invalidGlobal = new ProgramNode(
+        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
+
+        Assert.Equal(errorPos, exception.Position);
+    }
+
+    [Fact]
+    public void Generate_InvalidGlobalInitializer_ThrowsCodegenExceptionWithPosition()
+    {
+        AstPosition errorPos = new AstPosition(7, 13);
+        ProgramNode ast = new ProgramNode(
             Pos,
             new Declaration[]
             {
                 new VariableDeclaration(Pos, LangType.Int, "g", new CallExpression(errorPos, "readInt", Array.Empty<Expression>())),
                 new FunctionDeclaration(Pos, LangType.Void, "main", Array.Empty<ParameterNode>(), Block()),
             });
-        CodegenException ex4 = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(invalidGlobal));
-        Assert.Equal(errorPos, ex4.Position);
 
-        ProgramNode missingReturn = new ProgramNode(
+        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
+
+        Assert.Equal(errorPos, exception.Position);
+    }
+
+    [Fact]
+    public void Generate_MissingReturn_ThrowsCodegenExceptionWithPosition()
+    {
+        AstPosition errorPos = new AstPosition(7, 13);
+        ProgramNode ast = new ProgramNode(
             Pos,
             new Declaration[]
             {
                 new FunctionDeclaration(errorPos, LangType.Int, "broken", Array.Empty<ParameterNode>(), Block(ExprStmt(Call("print", Lit(1))))),
                 new FunctionDeclaration(Pos, LangType.Void, "main", Array.Empty<ParameterNode>(), Block()),
             });
-        CodegenException ex5 = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(missingReturn));
-        Assert.Equal(errorPos, ex5.Position);
+
+        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
+
+        Assert.Equal(errorPos, exception.Position);
     }
 
     private static void AssertMainInstructions(IReadOnlyList<Statement> mainStatements, params Instruction[] expectedMain)

@@ -13,19 +13,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 
-#!/usr/bin/env bash
-#
-# Запускает тесты со сбором данных о покрытии кода тестами.
-# Обрабатывает эти данные, генерируя отчёт о покрытии тестами.
-#
-# Установка инструментов для обработки данных о покрытии кода тестами:
-#   dotnet tool install --global dotnet-coverage
-#   dotnet tool install --global dotnet-reportgenerator-globaltool
-#
-# По завершению скрипта создаётся HTML-отчёт: tests/coverage-report/index.html
-
-$ErrorActionPreference = 'Stop'
-
 $ProjectDir = Split-Path -Path $PSScriptRoot -Parent
 
 # Печатает команду, затем запускает её и проверяет код возврата.

@@ -32,8 +32,6 @@ public sealed class VmProgramExecutionTests
     [Fact]
     public void Call_f_10_3_AssignsParametersInOrderAndReturns7()
     {
-        // <entry> (0..3): Push 10, Push 3, Call 1, Print, Return
-        // sub(a, b) (5..8): LoadLocal 0, LoadLocal 1, Sub, Return
         VmFunction entry = new VmFunction("<entry>", EntryPoint: 0, ParameterCount: 0, LocalCount: 0, ReturnsValue: false);
         VmFunction sub = new VmFunction("sub", EntryPoint: 5, ParameterCount: 2, LocalCount: 2, ReturnsValue: true);
 
@@ -57,8 +55,6 @@ public sealed class VmProgramExecutionTests
     [Fact]
     public void Call_100PlusF2_PreservesCallerStackBelowStackBase()
     {
-        // <entry> (0..5): Push 100, Push 2, Call 1, Add, Print, Return
-        // dbl(x) (6..9): LoadLocal 0, Push 2, Mul, Return
         VmFunction entry = new VmFunction("<entry>", EntryPoint: 0, ParameterCount: 0, LocalCount: 0, ReturnsValue: false);
         VmFunction dbl = new VmFunction("dbl", EntryPoint: 6, ParameterCount: 1, LocalCount: 1, ReturnsValue: true);
 
@@ -83,7 +79,6 @@ public sealed class VmProgramExecutionTests
     [Fact]
     public void TwoSequentialCalls_ReceiveFreshLocalFrames()
     {
-        // fn(): LoadLocal 0 (default 0), Push 5, Add, StoreLocal 0, LoadLocal 0, Return
         VmFunction entry = new VmFunction("<entry>", EntryPoint: 0, ParameterCount: 0, LocalCount: 0, ReturnsValue: false);
         VmFunction fn = new VmFunction("fn", EntryPoint: 5, ParameterCount: 0, LocalCount: 1, ReturnsValue: true);
 
@@ -126,7 +121,7 @@ public sealed class VmProgramExecutionTests
     }
 
     [Fact]
-    public void AbsMinMax_ProduceExpectedResultsAndThrowOnMinValueAbs()
+    public void AbsMinMax_ProduceExpectedResults()
     {
         VmFunction entry = new VmFunction("<entry>", EntryPoint: 0, ParameterCount: 0, LocalCount: 0, ReturnsValue: false);
         Instruction[] instructions =
@@ -146,50 +141,50 @@ public sealed class VmProgramExecutionTests
         };
 
         VmProgram program = new VmProgram(instructions, new[] { entry }, GlobalCount: 0, EntryFunctionIndex: 0);
+
         Assert.Equal("15\n10\n25\n", RunProgram(program));
-
-        VmProgram overflowAbs = new VmProgram(
-            new[]
-            {
-                new Instruction(OpCode.Push, int.MinValue),
-                new Instruction(OpCode.Abs),
-                new Instruction(OpCode.Return),
-            },
-            new[] { entry },
-            GlobalCount: 0,
-            EntryFunctionIndex: 0);
-
-        Assert.Throws<VmException>(() => RunProgram(overflowAbs));
     }
 
     [Fact]
-    public void InvalidFunctionOrSlotIndex_AndUnbalancedReturn_ThrowVmException()
+    public void Abs_MinimumValue_ThrowsVmException()
+    {
+        VmFunction entry = new VmFunction("<entry>", EntryPoint: 0, ParameterCount: 0, LocalCount: 0, ReturnsValue: false);
+        Instruction[] instructions =
+        {
+            new Instruction(OpCode.Push, int.MinValue),
+            new Instruction(OpCode.Abs),
+            new Instruction(OpCode.Return),
+        };
+
+        VmProgram program = new VmProgram(instructions, new[] { entry }, GlobalCount: 0, EntryFunctionIndex: 0);
+
+        Assert.Throws<VmException>(() => RunProgram(program));
+    }
+
+    public static TheoryData<OpCode, int> InvalidInstructions()
+    {
+        return new TheoryData<OpCode, int>
+        {
+            { OpCode.Call, 99 },
+            { OpCode.LoadLocal, 5 },
+            { OpCode.Push, 1 },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidInstructions))]
+    public void InvalidInstruction_ThrowsVmException(OpCode opCode, int operand)
     {
         VmFunction entry = new VmFunction("<entry>", EntryPoint: 0, ParameterCount: 0, LocalCount: 1, ReturnsValue: false);
+        Instruction[] instructions =
+        {
+            new Instruction(opCode, operand),
+            new Instruction(OpCode.Return),
+        };
 
-        // 1. Неизвестный индекс функции
-        VmProgram badCall = new VmProgram(
-            new[] { new Instruction(OpCode.Call, 99), new Instruction(OpCode.Return) },
-            new[] { entry },
-            GlobalCount: 0,
-            EntryFunctionIndex: 0);
-        Assert.Throws<VmException>(() => RunProgram(badCall));
+        VmProgram program = new VmProgram(instructions, new[] { entry }, GlobalCount: 0, EntryFunctionIndex: 0);
 
-        // 2. Неизвестный локальный слот
-        VmProgram badLocal = new VmProgram(
-            new[] { new Instruction(OpCode.LoadLocal, 5), new Instruction(OpCode.Return) },
-            new[] { entry },
-            GlobalCount: 0,
-            EntryFunctionIndex: 0);
-        Assert.Throws<VmException>(() => RunProgram(badLocal));
-
-        // 3. Несбалансированный стек при Return (осталось лишнее число в void-функции)
-        VmProgram unbalancedReturn = new VmProgram(
-            new[] { new Instruction(OpCode.Push, 1), new Instruction(OpCode.Return) },
-            new[] { entry },
-            GlobalCount: 0,
-            EntryFunctionIndex: 0);
-        Assert.Throws<VmException>(() => RunProgram(unbalancedReturn));
+        Assert.Throws<VmException>(() => RunProgram(program));
     }
 
     private static string RunProgram(VmProgram program, string input = "")
