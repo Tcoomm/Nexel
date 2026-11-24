@@ -34,9 +34,9 @@ internal sealed class DeclarationPass : AbstractPass
     {
         EnsureNameAvailable(node.Name, node.Position);
 
-        if (node.Type != LangType.Int)
+        if (node.Type != LangType.Int && node.Type != LangType.Bool)
         {
-            throw new SemanticException("Global variable must have type int", node.Position);
+            throw new SemanticException("Global variable must have type int or bool", node.Position);
         }
 
         VariableSymbol symbol = new VariableSymbol(node.Name, node.Type);
@@ -48,7 +48,7 @@ internal sealed class DeclarationPass : AbstractPass
     {
         EnsureNameAvailable(node.Name, node.Position);
 
-        if (node.ReturnType != LangType.Int && node.ReturnType != LangType.Void)
+        if (node.ReturnType != LangType.Int && node.ReturnType != LangType.Bool && node.ReturnType != LangType.Void)
         {
             throw new SemanticException("Invalid function return type", node.Position);
         }

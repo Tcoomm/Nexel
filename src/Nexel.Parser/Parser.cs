@@ -47,12 +47,12 @@ public sealed class Parser
             return ParseFunctionDeclaration(type, name);
         }
 
-        if (type == LangType.Int && Current.Kind == TokenKind.Assign)
+        if ((type == LangType.Int || type == LangType.Bool) && Current.Kind == TokenKind.Assign)
         {
             Advance();
             Expression initializer = ParseGlobalInitializer();
             Expect(TokenKind.Semicolon);
-            return new VariableDeclaration(Position(name), LangType.Int, name.Lexeme, initializer);
+            return new VariableDeclaration(Position(name), type, name.Lexeme, initializer);
         }
 
         throw new ParserException(
@@ -68,8 +68,33 @@ public sealed class Parser
             return LangType.Int;
         }
 
+        if (Current.Kind == TokenKind.Bool)
+        {
+            Advance();
+            return LangType.Bool;
+        }
+
         Expect(TokenKind.Void);
         return LangType.Void;
+    }
+
+    private LangType ParseValueType()
+    {
+        if (Current.Kind == TokenKind.Int)
+        {
+            Advance();
+            return LangType.Int;
+        }
+
+        if (Current.Kind == TokenKind.Bool)
+        {
+            Advance();
+            return LangType.Bool;
+        }
+
+        throw new ParserException(
+            $"Expected type 'int' or 'bool', got {Current.Kind} '{Current.Lexeme}'",
+            Current.Position);
     }
 
     private FunctionDeclaration ParseFunctionDeclaration(LangType type, Token name)
@@ -95,9 +120,9 @@ public sealed class Parser
 
     private ParameterNode ParseParameter()
     {
-        Expect(TokenKind.Int);
+        LangType type = ParseValueType();
         Token name = ExpectIdentifier();
-        return new ParameterNode(Position(name), LangType.Int, name.Lexeme);
+        return new ParameterNode(Position(name), type, name.Lexeme);
     }
 
     private BlockStatement ParseBlock()
@@ -117,7 +142,7 @@ public sealed class Parser
 
     private Statement ParseStatement()
     {
-        if (Current.Kind == TokenKind.Int)
+        if (Current.Kind == TokenKind.Int || Current.Kind == TokenKind.Bool)
         {
             return ParseVariableDeclarationStatement();
         }
@@ -132,6 +157,21 @@ public sealed class Parser
             return ParseBlock();
         }
 
+        if (Current.Kind == TokenKind.If)
+        {
+            return ParseIfStatement();
+        }
+
+        if (Current.Kind == TokenKind.While)
+        {
+            return ParseWhileStatement();
+        }
+
+        if (Current.Kind == TokenKind.For)
+        {
+            return ParseForStatement();
+        }
+
         if (Current.Kind == TokenKind.Identifier && NextKind == TokenKind.Assign)
         {
             return ParseAssignmentStatement();
@@ -143,16 +183,94 @@ public sealed class Parser
         return new ExpressionStatement(position, expression);
     }
 
+    private IfStatement ParseIfStatement()
+    {
+        Token keyword = Current;
+        Expect(TokenKind.If);
+        Expect(TokenKind.LeftParen);
+        Expression condition = ParseExpression();
+        Expect(TokenKind.RightParen);
+        BlockStatement thenBlock = ParseBlock();
+
+        BlockStatement? elseBlock = null;
+        if (Current.Kind == TokenKind.Else)
+        {
+            Advance();
+            elseBlock = ParseBlock();
+        }
+
+        return new IfStatement(Position(keyword), condition, thenBlock, elseBlock);
+    }
+
+    private WhileStatement ParseWhileStatement()
+    {
+        Token keyword = Current;
+        Expect(TokenKind.While);
+        Expect(TokenKind.LeftParen);
+        Expression condition = ParseExpression();
+        Expect(TokenKind.RightParen);
+        BlockStatement body = ParseBlock();
+        return new WhileStatement(Position(keyword), condition, body);
+    }
+
+    private ForStatement ParseForStatement()
+    {
+        Token keyword = Current;
+        Expect(TokenKind.For);
+        Expect(TokenKind.LeftParen);
+
+        Statement initializer = ParseForInitializer();
+        Expect(TokenKind.Semicolon);
+
+        Expression condition = ParseExpression();
+        Expect(TokenKind.Semicolon);
+
+        AssignmentStatement step = ParseForStep();
+        Expect(TokenKind.RightParen);
+
+        BlockStatement body = ParseBlock();
+        return new ForStatement(Position(keyword), initializer, condition, step, body);
+    }
+
+    private Statement ParseForInitializer()
+    {
+        if (Current.Kind == TokenKind.Int || Current.Kind == TokenKind.Bool)
+        {
+            LangType type = ParseValueType();
+            Token name = ExpectIdentifier();
+            Expect(TokenKind.Assign);
+            Expression initializer = ParseExpression();
+
+            VariableDeclaration declaration = new VariableDeclaration(
+                Position(name), type, name.Lexeme, initializer);
+
+            return new VariableDeclarationStatement(Position(name), declaration);
+        }
+
+        Token identifier = ExpectIdentifier();
+        Expect(TokenKind.Assign);
+        Expression value = ParseExpression();
+        return new AssignmentStatement(Position(identifier), identifier.Lexeme, value);
+    }
+
+    private AssignmentStatement ParseForStep()
+    {
+        Token identifier = ExpectIdentifier();
+        Expect(TokenKind.Assign);
+        Expression value = ParseExpression();
+        return new AssignmentStatement(Position(identifier), identifier.Lexeme, value);
+    }
+
     private VariableDeclarationStatement ParseVariableDeclarationStatement()
     {
-        Expect(TokenKind.Int);
+        LangType type = ParseValueType();
         Token name = ExpectIdentifier();
         Expect(TokenKind.Assign);
         Expression initializer = ParseExpression();
         Expect(TokenKind.Semicolon);
 
         VariableDeclaration declaration = new VariableDeclaration(
-            Position(name), LangType.Int, name.Lexeme, initializer);
+            Position(name), type, name.Lexeme, initializer);
 
         return new VariableDeclarationStatement(Position(name), declaration);
     }
@@ -177,12 +295,90 @@ public sealed class Parser
 
     private Expression ParseExpression()
     {
-        return ParseAdditive(allowIdentifiers: true);
+        return ParseOr(allowIdentifiers: true);
     }
 
     private Expression ParseGlobalInitializer()
     {
-        return ParseAdditive(allowIdentifiers: false);
+        return ParseOr(allowIdentifiers: false);
+    }
+
+    private Expression ParseOr(bool allowIdentifiers)
+    {
+        Expression left = ParseAnd(allowIdentifiers);
+
+        while (Current.Kind == TokenKind.Or)
+        {
+            Token op = Current;
+            Advance();
+            Expression right = ParseAnd(allowIdentifiers);
+            left = new BinaryExpression(Position(op), BinaryOperator.Or, left, right);
+        }
+
+        return left;
+    }
+
+    private Expression ParseAnd(bool allowIdentifiers)
+    {
+        Expression left = ParseEquality(allowIdentifiers);
+
+        while (Current.Kind == TokenKind.And)
+        {
+            Token op = Current;
+            Advance();
+            Expression right = ParseEquality(allowIdentifiers);
+            left = new BinaryExpression(Position(op), BinaryOperator.And, left, right);
+        }
+
+        return left;
+    }
+
+    private Expression ParseEquality(bool allowIdentifiers)
+    {
+        Expression left = ParseRelational(allowIdentifiers);
+
+        while (Current.Kind == TokenKind.Equal || Current.Kind == TokenKind.NotEqual)
+        {
+            Token op = Current;
+            Advance();
+            Expression right = ParseRelational(allowIdentifiers);
+
+            BinaryOperator kind = op.Kind == TokenKind.Equal
+                ? BinaryOperator.Equal
+                : BinaryOperator.NotEqual;
+
+            left = new BinaryExpression(Position(op), kind, left, right);
+        }
+
+        return left;
+    }
+
+    private Expression ParseRelational(bool allowIdentifiers)
+    {
+        Expression left = ParseAdditive(allowIdentifiers);
+
+        while (Current.Kind == TokenKind.Less
+            || Current.Kind == TokenKind.LessOrEqual
+            || Current.Kind == TokenKind.Greater
+            || Current.Kind == TokenKind.GreaterOrEqual)
+        {
+            Token op = Current;
+            Advance();
+            Expression right = ParseAdditive(allowIdentifiers);
+
+            BinaryOperator kind = op.Kind switch
+            {
+                TokenKind.Less => BinaryOperator.Less,
+                TokenKind.LessOrEqual => BinaryOperator.LessOrEqual,
+                TokenKind.Greater => BinaryOperator.Greater,
+                TokenKind.GreaterOrEqual => BinaryOperator.GreaterOrEqual,
+                _ => throw new ParserException($"Unexpected operator {op.Kind}", op.Position),
+            };
+
+            left = new BinaryExpression(Position(op), kind, left, right);
+        }
+
+        return left;
     }
 
     private Expression ParseAdditive(bool allowIdentifiers)
@@ -233,15 +429,21 @@ public sealed class Parser
 
     private Expression ParseUnary(bool allowIdentifiers)
     {
-        if (Current.Kind == TokenKind.Plus || Current.Kind == TokenKind.Minus)
+        if (Current.Kind == TokenKind.Plus
+            || Current.Kind == TokenKind.Minus
+            || Current.Kind == TokenKind.Not)
         {
             Token op = Current;
             Advance();
             Expression operand = ParseUnary(allowIdentifiers);
 
-            UnaryOperator kind = op.Kind == TokenKind.Plus
-                ? UnaryOperator.Plus
-                : UnaryOperator.Negate;
+            UnaryOperator kind = op.Kind switch
+            {
+                TokenKind.Plus => UnaryOperator.Plus,
+                TokenKind.Minus => UnaryOperator.Negate,
+                TokenKind.Not => UnaryOperator.Not,
+                _ => throw new ParserException($"Unexpected unary operator {op.Kind}", op.Position),
+            };
 
             return new UnaryExpression(Position(op), kind, operand);
         }
@@ -270,10 +472,17 @@ public sealed class Parser
             return new IntegerLiteralExpression(Position(token), value);
         }
 
+        if (Current.Kind == TokenKind.True || Current.Kind == TokenKind.False)
+        {
+            bool value = Current.Kind == TokenKind.True;
+            Advance();
+            return new BooleanLiteralExpression(Position(token), value);
+        }
+
         if (Current.Kind == TokenKind.LeftParen)
         {
             Advance();
-            Expression expression = ParseAdditive(allowIdentifiers);
+            Expression expression = ParseOr(allowIdentifiers);
             Expect(TokenKind.RightParen);
             return expression;
         }

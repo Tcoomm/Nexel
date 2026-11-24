@@ -39,6 +39,32 @@ internal sealed class TypeCheckingPass : AbstractPass
         _scopes.Pop();
     }
 
+    public override void Visit(IfStatement node)
+    {
+        RequireType(node.Condition, LangType.Bool);
+        node.ThenBlock.Accept(this);
+        node.ElseBlock?.Accept(this);
+    }
+
+    public override void Visit(WhileStatement node)
+    {
+        RequireType(node.Condition, LangType.Bool);
+        node.Body.Accept(this);
+    }
+
+    public override void Visit(ForStatement node)
+    {
+        // Область for охватывает инициализатор, условие, шаг и тело.
+        PushScope();
+
+        node.Initializer.Accept(this);
+        RequireType(node.Condition, LangType.Bool);
+        node.Step.Accept(this);
+        node.Body.Accept(this);
+
+        _scopes.Pop();
+    }
+
     public override void Visit(VariableDeclaration node)
     {
         RequireType(node.Initializer, node.Type);
@@ -90,6 +116,11 @@ internal sealed class TypeCheckingPass : AbstractPass
         node.ResultType = LangType.Int;
     }
 
+    public override void Visit(BooleanLiteralExpression node)
+    {
+        node.ResultType = LangType.Bool;
+    }
+
     public override void Visit(VariableExpression node)
     {
         if (_currentFunction is null)
@@ -104,15 +135,59 @@ internal sealed class TypeCheckingPass : AbstractPass
 
     public override void Visit(UnaryExpression node)
     {
-        RequireType(node.Operand, LangType.Int);
-        node.ResultType = LangType.Int;
+        switch (node.Operator)
+        {
+            case UnaryOperator.Plus:
+            case UnaryOperator.Negate:
+                RequireType(node.Operand, LangType.Int);
+                node.ResultType = LangType.Int;
+                break;
+
+            case UnaryOperator.Not:
+                RequireType(node.Operand, LangType.Bool);
+                node.ResultType = LangType.Bool;
+                break;
+
+            default:
+                throw new SemanticException($"Unsupported unary operator '{node.Operator}'", node.Position);
+        }
     }
 
     public override void Visit(BinaryExpression node)
     {
-        RequireType(node.Left, LangType.Int);
-        RequireType(node.Right, LangType.Int);
-        node.ResultType = LangType.Int;
+        switch (node.Operator)
+        {
+            case BinaryOperator.Add:
+            case BinaryOperator.Subtract:
+            case BinaryOperator.Multiply:
+            case BinaryOperator.Divide:
+            case BinaryOperator.Modulo:
+                RequireType(node.Left, LangType.Int);
+                RequireType(node.Right, LangType.Int);
+                node.ResultType = LangType.Int;
+                break;
+
+            case BinaryOperator.Less:
+            case BinaryOperator.LessOrEqual:
+            case BinaryOperator.Greater:
+            case BinaryOperator.GreaterOrEqual:
+            case BinaryOperator.Equal:
+            case BinaryOperator.NotEqual:
+                RequireType(node.Left, LangType.Int);
+                RequireType(node.Right, LangType.Int);
+                node.ResultType = LangType.Bool;
+                break;
+
+            case BinaryOperator.And:
+            case BinaryOperator.Or:
+                RequireType(node.Left, LangType.Bool);
+                RequireType(node.Right, LangType.Bool);
+                node.ResultType = LangType.Bool;
+                break;
+
+            default:
+                throw new SemanticException($"Unsupported binary operator '{node.Operator}'", node.Position);
+        }
     }
 
     public override void Visit(CallExpression node)
@@ -155,9 +230,9 @@ internal sealed class TypeCheckingPass : AbstractPass
 
     private VariableSymbol DeclareLocal(string name, LangType type, AstPosition position)
     {
-        if (type != LangType.Int)
+        if (type != LangType.Int && type != LangType.Bool)
         {
-            throw new SemanticException("Variable or parameter must have type int", position);
+            throw new SemanticException("Variable or parameter must have type int or bool", position);
         }
 
         if (_functions.ContainsKey(name))

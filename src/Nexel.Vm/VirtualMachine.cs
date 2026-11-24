@@ -1,4 +1,4 @@
-﻿namespace Nexel.Vm;
+namespace Nexel.Vm;
 
 using System.Globalization;
 
@@ -98,6 +98,10 @@ public sealed class VirtualMachine
                         stack.Add(instruction.Operand);
                         break;
 
+                    case OpCode.PushBool:
+                        stack.Add(instruction.Operand == 0 ? 0 : 1);
+                        break;
+
                     case OpCode.Pop:
                         PopValue(stack, currentFrame);
                         break;
@@ -158,6 +162,90 @@ public sealed class VirtualMachine
                     {
                         int value = PopValue(stack, currentFrame);
                         stack.Add(checked(-value));
+                        break;
+                    }
+
+                    case OpCode.Not:
+                    {
+                        int value = PopValue(stack, currentFrame);
+                        stack.Add(value == 0 ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.Equal:
+                    {
+                        int b = PopValue(stack, currentFrame);
+                        int a = PopValue(stack, currentFrame);
+                        stack.Add(a == b ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.NotEqual:
+                    {
+                        int b = PopValue(stack, currentFrame);
+                        int a = PopValue(stack, currentFrame);
+                        stack.Add(a != b ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.Less:
+                    {
+                        int b = PopValue(stack, currentFrame);
+                        int a = PopValue(stack, currentFrame);
+                        stack.Add(a < b ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.LessOrEqual:
+                    {
+                        int b = PopValue(stack, currentFrame);
+                        int a = PopValue(stack, currentFrame);
+                        stack.Add(a <= b ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.Greater:
+                    {
+                        int b = PopValue(stack, currentFrame);
+                        int a = PopValue(stack, currentFrame);
+                        stack.Add(a > b ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.GreaterOrEqual:
+                    {
+                        int b = PopValue(stack, currentFrame);
+                        int a = PopValue(stack, currentFrame);
+                        stack.Add(a >= b ? 1 : 0);
+                        break;
+                    }
+
+                    case OpCode.Jump:
+                        ValidateJumpTarget(instruction.Operand, program);
+                        nextIp = instruction.Operand;
+                        break;
+
+                    case OpCode.JumpIfFalse:
+                    {
+                        int condition = PopValue(stack, currentFrame);
+                        if (condition == 0)
+                        {
+                            ValidateJumpTarget(instruction.Operand, program);
+                            nextIp = instruction.Operand;
+                        }
+
+                        break;
+                    }
+
+                    case OpCode.JumpIfTrue:
+                    {
+                        int condition = PopValue(stack, currentFrame);
+                        if (condition != 0)
+                        {
+                            ValidateJumpTarget(instruction.Operand, program);
+                            nextIp = instruction.Operand;
+                        }
+
                         break;
                     }
 
@@ -353,7 +441,15 @@ public sealed class VirtualMachine
         if (function.LocalCount < function.ParameterCount)
         {
             throw new VmException(
-                $"Invalid local count {function.LocalCount} (less than parameter count {function.ParameterCount}) in function '{function.Name}'.");
+                $"Local count {function.LocalCount} is less than parameter count {function.ParameterCount} in function '{function.Name}'.");
+        }
+    }
+
+    private static void ValidateJumpTarget(int target, VmProgram program)
+    {
+        if (target < 0 || target > program.Instructions.Count)
+        {
+            throw new VmException($"Invalid jump target {target}.");
         }
     }
 

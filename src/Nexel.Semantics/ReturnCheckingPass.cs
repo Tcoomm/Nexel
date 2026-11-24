@@ -25,6 +25,15 @@ internal sealed class ReturnCheckingPass : AbstractPass
             {
                 return true;
             }
+
+            // If гарантирует возврат только с else и обеими возвращающими ветвями.
+            if (statement is IfStatement ifStatement
+                && ifStatement.ElseBlock is not null
+                && GuaranteesReturn(ifStatement.ThenBlock)
+                && GuaranteesReturn(ifStatement.ElseBlock))
+            {
+                return true;
+            }
         }
 
         return false;
