@@ -162,17 +162,11 @@ primary_expression = integer_literal
                    | "(", expression, ")"
                    | identifier, [ call_suffix ] ;
 
-call = identifier, call_suffix ;
 call_suffix = "(", [ argument_list ], ")" ;
 argument_list = expression, { ",", expression } ;
-
-integer_literal = digit, { digit } ;
-identifier = identifier_start, { identifier_part } ;
-identifier_start = letter | "_" ;
-identifier_part = letter | digit | "_" ;
 ```
 
-В `primary_expression` общая форма `identifier, [ call_suffix ]` означает чтение переменной, если хвоста вызова нет, и вызов функции, если присутствует `(...)`. Правило `call` именует второй вариант этой формы.
+В `primary_expression` общая форма `identifier, [ call_suffix ]` означает чтение переменной, если хвоста вызова нет, и вызов функции, если присутствует `(...)`.
 
 У `external_declaration` также есть общая начальная часть `int identifier`. После неё `(` означает определение функции, а `=` — объявление глобальной переменной. Это различие следует обрабатывать факторизованным разбором.
 
