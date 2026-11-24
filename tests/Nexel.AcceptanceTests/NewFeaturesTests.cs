@@ -2,8 +2,8 @@ namespace Nexel.AcceptanceTests;
 
 using Nexel.Execution;
 using Nexel.Parser;
+using Nexel.Semantics;
 using Nexel.Vm;
-using Nexel.VmCodegen;
 
 using Xunit;
 
@@ -54,7 +54,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("1\n2\n", Run(source));
+        Assert.Equal("1\n2\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("2\n1\n", Run(source));
+        Assert.Equal("2\n1\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("1\n", Run(source));
+        Assert.Equal("1\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("6\n5\n", Run(source));
+        Assert.Equal("6\n5\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("307\n", Run(source));
+        Assert.Equal("307\n", InterpreterTestRunner.Run(source));
     }
 
     public static TheoryData<string> DuplicateParameterOrParameterRedeclarationIsRejectedCases()
@@ -173,7 +173,7 @@ public sealed class NewFeaturesTests
     [MemberData(nameof(DuplicateParameterOrParameterRedeclarationIsRejectedCases))]
     public void DuplicateParameterOrParameterRedeclarationIsRejected(string source)
     {
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("2\n1\n", Run(source));
+        Assert.Equal("2\n1\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("42\n43\n43\n", Run(source));
+        Assert.Equal("42\n43\n43\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("2\n1\n", Run(source));
+        Assert.Equal("2\n1\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -248,7 +248,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("5\n", Run(source));
+        Assert.Equal("5\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("42\n10\n", Run(source));
+        Assert.Equal("42\n10\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -290,7 +290,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("7\n", Run(source));
+        Assert.Equal("7\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("7\n", Run(source));
+        Assert.Equal("7\n", InterpreterTestRunner.Run(source));
     }
 
     public static TheoryData<string> FunctionReturnMustMatchDeclaredReturnTypeCases()
@@ -325,7 +325,7 @@ public sealed class NewFeaturesTests
     [MemberData(nameof(FunctionReturnMustMatchDeclaredReturnTypeCases))]
     public void FunctionReturnMustMatchDeclaredReturnType(string source)
     {
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     [Fact]
@@ -341,7 +341,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("104\n", Run(source));
+        Assert.Equal("104\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -362,7 +362,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("1\n2\n12\n", Run(source));
+        Assert.Equal("1\n2\n12\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -378,7 +378,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("7\n", Run(source, "10\n3\n"));
+        Assert.Equal("7\n", InterpreterTestRunner.Run(source, "10\n3\n"));
     }
 
     public static TheoryData<int, int> AbsReturnsAbsoluteValueCases()
@@ -397,7 +397,7 @@ public sealed class NewFeaturesTests
     {
         string source = $"void main() {{ print(abs({value})); }}";
 
-        Assert.Equal($"{expected}\n", Run(source));
+        Assert.Equal($"{expected}\n", InterpreterTestRunner.Run(source));
     }
 
     [Fact]
@@ -412,7 +412,7 @@ public sealed class NewFeaturesTests
             }
             """;
 
-        Assert.Equal("3\n7\n4\n4\n", Run(source));
+        Assert.Equal("3\n7\n4\n4\n", InterpreterTestRunner.Run(source));
     }
 
     public static TheoryData<string> FunctionsRequireExactArityCases()
@@ -432,7 +432,7 @@ public sealed class NewFeaturesTests
     [MemberData(nameof(FunctionsRequireExactArityCases))]
     public void FunctionsRequireExactArity(string source)
     {
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     [Fact]
@@ -453,6 +453,9 @@ public sealed class NewFeaturesTests
         {
             { "void main() { print(unknown); }" },
             { "void main() { print(unknown()); }" },
+            { "void main() { int x = x + 1; }" },
+            { "void main() { missing = 1; }" },
+            { "void main() { int x = 1; x(); }" },
             { "void main() { print(value); int value = 1; }" },
             { "void main() { int value = 1; int value = 2; }" },
             { "int value = 1; int value = 2; void main() { }" },
@@ -467,7 +470,7 @@ public sealed class NewFeaturesTests
     [MemberData(nameof(UnknownOrConflictingNamesAreRejectedCases))]
     public void UnknownOrConflictingNamesAreRejected(string source)
     {
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     public static TheoryData<string> LocalVariablesAndParametersCannotUseFunctionNamesCases()
@@ -485,7 +488,7 @@ public sealed class NewFeaturesTests
     [MemberData(nameof(LocalVariablesAndParametersCannotUseFunctionNamesCases))]
     public void LocalVariablesAndParametersCannotUseFunctionNames(string source)
     {
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     public static TheoryData<string> VoidCallCannotBeUsedAsAnIntValueCases()
@@ -495,6 +498,8 @@ public sealed class NewFeaturesTests
             { "void noValue() { } void main() { print(noValue() + 1); }" },
             { "void noValue() { } int accept(int value) { return value; } void main() { print(accept(noValue())); }" },
             { "void noValue() { } void main() { int value = noValue(); }" },
+            { "void main() { print(-print(1)); }" },
+            { "void main() { int x = 1; x = print(1); }" },
             { "void noValue() { } int getValue() { return noValue(); } void main() { print(getValue()); }" },
         };
     }
@@ -503,7 +508,7 @@ public sealed class NewFeaturesTests
     [MemberData(nameof(VoidCallCannotBeUsedAsAnIntValueCases))]
     public void VoidCallCannotBeUsedAsAnIntValue(string source)
     {
-        AssertCodegenFailure(source);
+        AssertSemanticFailure(source);
     }
 
     public static TheoryData<string> GlobalInitializerCannotReadNamesOrCallFunctionsCases()
@@ -522,6 +527,60 @@ public sealed class NewFeaturesTests
         AssertParserFailure(source);
     }
 
+    public static TheoryData<string> InvalidEntryPointCases()
+    {
+        return new TheoryData<string>
+        {
+            { "int helper() { return 1; }" },
+            { "int main() { return 1; }" },
+            { "void main(int value) { }" },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidEntryPointCases))]
+    public void InvalidEntryPointIsRejected(string source)
+    {
+        AssertSemanticFailure(source);
+    }
+
+    [Fact]
+    public void ShadowingInitializerReadsOuterVariable()
+    {
+        string source = """
+            void main() {
+                int x = 5;
+                {
+                    int x = x + 1;
+                    print(x);
+                }
+                print(x);
+            }
+            """;
+
+        Assert.Equal("6\n5\n", InterpreterTestRunner.Run(source));
+    }
+
+    [Fact]
+    public void SemanticErrorInUnusedFunctionPreventsOutput()
+    {
+        string source = """
+            void main() {
+                print(1);
+            }
+            void broken() {
+                print(missing);
+            }
+            """;
+
+        using StringReader input = new StringReader(string.Empty);
+        using StringWriter output = new StringWriter();
+
+        Assert.Throws<SemanticException>(
+            () => new Interpreter().Execute(source, input, output));
+        Assert.Equal(string.Empty, output.ToString());
+    }
+
     [Fact]
     public void SemanticErrorPreventsAllProgramOutput()
     {
@@ -535,7 +594,7 @@ public sealed class NewFeaturesTests
         using StringReader input = new StringReader(string.Empty);
         using StringWriter output = new StringWriter();
 
-        Assert.Throws<CodegenException>(
+        Assert.Throws<SemanticException>(
             () => new Interpreter().Execute(source, input, output));
         Assert.Equal(string.Empty, output.ToString());
     }
@@ -543,49 +602,27 @@ public sealed class NewFeaturesTests
     [Fact]
     public void RectangleAreaProgramProducesExpectedOutput()
     {
-        Assert.Equal("20\n", Run(RectangleAreaProgram, "-4\n5\n"));
+        Assert.Equal("20\n", InterpreterTestRunner.Run(RectangleAreaProgram, "-4\n5\n"));
     }
 
     [Fact]
     public void OrderCostProgramProducesExpectedOutput()
     {
-        Assert.Equal("690\n", Run(OrderCostProgram, "200\n3\n"));
+        Assert.Equal("690\n", InterpreterTestRunner.Run(OrderCostProgram, "200\n3\n"));
     }
 
-    private static string Run(string source, string input = "")
+    private static void AssertSemanticFailure(string source)
     {
-        using StringReader reader = new StringReader(input);
-        using StringWriter writer = new StringWriter();
-
-        new Interpreter().Execute(source, reader, writer);
-
-        return writer.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
-    }
-
-    private static void AssertCodegenFailure(string source)
-    {
-        using StringReader reader = new StringReader(string.Empty);
-        using StringWriter writer = new StringWriter();
-
-        Assert.Throws<CodegenException>(
-            () => new Interpreter().Execute(source, reader, writer));
+        Assert.Throws<SemanticException>(() => InterpreterTestRunner.Run(source));
     }
 
     private static void AssertParserFailure(string source)
     {
-        using StringReader reader = new StringReader(string.Empty);
-        using StringWriter writer = new StringWriter();
-
-        Assert.Throws<ParserException>(
-            () => new Interpreter().Execute(source, reader, writer));
+        Assert.Throws<ParserException>(() => InterpreterTestRunner.Run(source));
     }
 
     private static void AssertVmFailure(string source)
     {
-        using StringReader reader = new StringReader(string.Empty);
-        using StringWriter writer = new StringWriter();
-
-        Assert.Throws<VmException>(
-            () => new Interpreter().Execute(source, reader, writer));
+        Assert.Throws<VmException>(() => InterpreterTestRunner.Run(source));
     }
 }

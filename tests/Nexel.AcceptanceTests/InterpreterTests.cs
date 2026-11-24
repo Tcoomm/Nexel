@@ -1,4 +1,3 @@
-using Nexel.Execution;
 using Nexel.Lexer;
 using Nexel.Parser;
 using Nexel.Vm;
@@ -28,44 +27,34 @@ public sealed class InterpreterTests
     [MemberData(nameof(ExecuteProgramCases))]
     public void ExecuteProgram(string source, string input, string expected)
     {
-        Assert.Equal(expected, Run(source, input));
+        Assert.Equal(expected, InterpreterTestRunner.Run(source, input));
     }
 
     [Fact]
     public void InvalidSyntaxThrowsParserException()
     {
         Assert.Throws<ParserException>(
-            () => Run("void main() { print(1 + ); }", ""));
+            () => InterpreterTestRunner.Run("void main() { print(1 + ); }", ""));
     }
 
     [Fact]
     public void DivisionByZeroThrowsVmException()
     {
         Assert.Throws<VmException>(
-            () => Run("void main() { print(10 / 0); }", ""));
+            () => InterpreterTestRunner.Run("void main() { print(10 / 0); }", ""));
     }
 
     [Fact]
     public void InvalidInputThrowsVmException()
     {
         Assert.Throws<VmException>(
-            () => Run("void main() { print(readInt()); }", "abc\n"));
+            () => InterpreterTestRunner.Run("void main() { print(readInt()); }", "abc\n"));
     }
 
     [Fact]
     public void InvalidCharacterThrowsLexerException()
     {
         Assert.Throws<LexerException>(
-            () => Run("void main() { print(@); }", ""));
-    }
-
-    private static string Run(string source, string input)
-    {
-        using StringReader reader = new StringReader(input);
-        using StringWriter writer = new StringWriter();
-
-        new Interpreter().Execute(source, reader, writer);
-
-        return writer.ToString().Replace("\r\n", "\n");
+            () => InterpreterTestRunner.Run("void main() { print(@); }", ""));
     }
 }

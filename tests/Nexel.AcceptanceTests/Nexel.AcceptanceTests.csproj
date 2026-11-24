@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nexel.Execution\Nexel.Execution.csproj" />
+    <ProjectReference Include="..\..\src\Nexel.Semantics\Nexel.Semantics.csproj" />
   </ItemGroup>
 
 </Project>
