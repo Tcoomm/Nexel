@@ -11,6 +11,7 @@ public sealed class Lexer
         ["if"] = TokenKind.If,
         ["else"] = TokenKind.Else,
         ["while"] = TokenKind.While,
+        ["for"] = TokenKind.For,
         ["return"] = TokenKind.Return,
         ["struct"] = TokenKind.Struct,
         ["true"] = TokenKind.True,

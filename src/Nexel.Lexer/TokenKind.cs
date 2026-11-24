@@ -13,6 +13,7 @@ public enum TokenKind
     If,
     Else,
     While,
+    For,
     Return,
     Struct,
     True,
