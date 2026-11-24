@@ -84,6 +84,14 @@ internal sealed class TypeCheckingPass : AbstractPass
     public override void Visit(AssignmentStatement node)
     {
         VariableSymbol symbol = ResolveVariable(node.Name, node.Position);
+
+        if (node.Operator != AssignmentOperator.Assign && !IsNumeric(symbol.Type))
+        {
+            throw new SemanticException(
+                $"Compound assignment is not supported for type {symbol.Type}",
+                node.Position);
+        }
+
         RequireType(node.Value, symbol.Type);
         node.Symbol = symbol;
     }
@@ -116,6 +124,11 @@ internal sealed class TypeCheckingPass : AbstractPass
         node.ResultType = LangType.Int;
     }
 
+    public override void Visit(DoubleLiteralExpression node)
+    {
+        node.ResultType = LangType.Double;
+    }
+
     public override void Visit(BooleanLiteralExpression node)
     {
         node.ResultType = LangType.Bool;
@@ -139,9 +152,11 @@ internal sealed class TypeCheckingPass : AbstractPass
         {
             case UnaryOperator.Plus:
             case UnaryOperator.Negate:
-                RequireType(node.Operand, LangType.Int);
-                node.ResultType = LangType.Int;
+            {
+                LangType operandType = RequireNumericType(node.Operand);
+                node.ResultType = operandType;
                 break;
+            }
 
             case UnaryOperator.Not:
                 RequireType(node.Operand, LangType.Bool);
@@ -161,6 +176,13 @@ internal sealed class TypeCheckingPass : AbstractPass
             case BinaryOperator.Subtract:
             case BinaryOperator.Multiply:
             case BinaryOperator.Divide:
+            {
+                LangType leftType = RequireNumericType(node.Left);
+                RequireType(node.Right, leftType);
+                node.ResultType = leftType;
+                break;
+            }
+
             case BinaryOperator.Modulo:
                 RequireType(node.Left, LangType.Int);
                 RequireType(node.Right, LangType.Int);
@@ -173,10 +195,12 @@ internal sealed class TypeCheckingPass : AbstractPass
             case BinaryOperator.GreaterOrEqual:
             case BinaryOperator.Equal:
             case BinaryOperator.NotEqual:
-                RequireType(node.Left, LangType.Int);
-                RequireType(node.Right, LangType.Int);
+            {
+                LangType leftType = RequireNumericType(node.Left);
+                RequireType(node.Right, leftType);
                 node.ResultType = LangType.Bool;
                 break;
+            }
 
             case BinaryOperator.And:
             case BinaryOperator.Or:
@@ -230,9 +254,9 @@ internal sealed class TypeCheckingPass : AbstractPass
 
     private VariableSymbol DeclareLocal(string name, LangType type, AstPosition position)
     {
-        if (type != LangType.Int && type != LangType.Bool)
+        if (type != LangType.Int && type != LangType.Bool && type != LangType.Double)
         {
-            throw new SemanticException("Variable or parameter must have type int or bool", position);
+            throw new SemanticException("Variable or parameter must have type int, bool, or double", position);
         }
 
         if (_functions.ContainsKey(name))
@@ -265,6 +289,22 @@ internal sealed class TypeCheckingPass : AbstractPass
         }
 
         throw new SemanticException($"Unknown variable '{name}'", position);
+    }
+
+    private static bool IsNumeric(LangType? type) =>
+        type == LangType.Int || type == LangType.Double;
+
+    private LangType RequireNumericType(Expression expression)
+    {
+        expression.Accept(this);
+        if (!IsNumeric(expression.ResultType))
+        {
+            throw new SemanticException(
+                $"Expected numeric expression (Int or Double), got {expression.ResultType}",
+                expression.Position);
+        }
+
+        return expression.ResultType!.Value;
     }
 
     private void RequireType(Expression expression, LangType expected)

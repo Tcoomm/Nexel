@@ -9,12 +9,18 @@ public sealed class VmCodeGenerator : IAstVisitor
     {
         ["readInt"] = OpCode.ReadInt,
         ["print"] = OpCode.Print,
+        ["readDouble"] = OpCode.ReadDouble,
+        ["printDouble"] = OpCode.PrintDouble,
+        ["toDouble"] = OpCode.IntToDouble,
+        ["toInt"] = OpCode.DoubleToInt,
         ["abs"] = OpCode.Abs,
         ["min"] = OpCode.Min,
         ["max"] = OpCode.Max,
     };
 
     private readonly List<Instruction> _instructions = new List<Instruction>();
+    private readonly List<double> _doubleConstants = new List<double>();
+    private readonly Dictionary<long, int> _doubleConstantIndices = new Dictionary<long, int>();
     private readonly Dictionary<VariableSymbol, int> _globals = new Dictionary<VariableSymbol, int>();
     private readonly Dictionary<VariableSymbol, int> _locals = new Dictionary<VariableSymbol, int>();
     private readonly Dictionary<FunctionSymbol, int> _functionIndices = new Dictionary<FunctionSymbol, int>();
@@ -25,6 +31,8 @@ public sealed class VmCodeGenerator : IAstVisitor
         ArgumentNullException.ThrowIfNull(program);
 
         _instructions.Clear();
+        _doubleConstants.Clear();
+        _doubleConstantIndices.Clear();
         _globals.Clear();
         _locals.Clear();
         _functionIndices.Clear();
@@ -32,7 +40,12 @@ public sealed class VmCodeGenerator : IAstVisitor
 
         program.Accept(this);
 
-        return new VmProgram(_instructions.ToList(), _functions.ToList(), _globals.Count, 0);
+        return new VmProgram(
+            _instructions.ToList(),
+            _functions.ToList(),
+            _globals.Count,
+            0,
+            _doubleConstants.ToList());
     }
 
     public void Visit(ProgramNode node)
@@ -115,8 +128,29 @@ public sealed class VmCodeGenerator : IAstVisitor
 
     public void Visit(AssignmentStatement node)
     {
+        VariableSymbol symbol = RequireSymbol(node.Symbol, node.Position);
+
+        if (node.Operator == AssignmentOperator.Assign)
+        {
+            node.Value.Accept(this);
+            EmitVariable(symbol, OpCode.StoreGlobal, OpCode.StoreLocal);
+            return;
+        }
+
+        EmitVariable(symbol, OpCode.LoadGlobal, OpCode.LoadLocal);
         node.Value.Accept(this);
-        EmitVariable(RequireSymbol(node.Symbol, node.Position), OpCode.StoreGlobal, OpCode.StoreLocal);
+
+        OpCode opCode = node.Operator switch
+        {
+            AssignmentOperator.Add => OpCode.Add,
+            AssignmentOperator.Subtract => OpCode.Sub,
+            AssignmentOperator.Multiply => OpCode.Mul,
+            AssignmentOperator.Divide => OpCode.Div,
+            _ => throw new CodegenException($"Unsupported assignment operator '{node.Operator}'", node.Position),
+        };
+
+        Emit(new Instruction(opCode));
+        EmitVariable(symbol, OpCode.StoreGlobal, OpCode.StoreLocal);
     }
 
     public void Visit(ExpressionStatement node)
@@ -177,6 +211,19 @@ public sealed class VmCodeGenerator : IAstVisitor
     public void Visit(IntegerLiteralExpression node)
     {
         Emit(new Instruction(OpCode.Push, node.Value));
+    }
+
+    public void Visit(DoubleLiteralExpression node)
+    {
+        long bits = BitConverter.DoubleToInt64Bits(node.Value);
+        if (!_doubleConstantIndices.TryGetValue(bits, out int index))
+        {
+            index = _doubleConstants.Count;
+            _doubleConstants.Add(node.Value);
+            _doubleConstantIndices.Add(bits, index);
+        }
+
+        Emit(new Instruction(OpCode.PushDouble, index));
     }
 
     public void Visit(BooleanLiteralExpression node)

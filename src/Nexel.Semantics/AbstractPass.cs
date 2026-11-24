@@ -84,6 +84,10 @@ public abstract class AbstractPass : IAstVisitor
     {
     }
 
+    public virtual void Visit(DoubleLiteralExpression node)
+    {
+    }
+
     public virtual void Visit(BooleanLiteralExpression node)
     {
     }

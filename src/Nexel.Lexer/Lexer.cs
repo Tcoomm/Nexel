@@ -5,6 +5,7 @@ public sealed class Lexer
     private static readonly Dictionary<string, TokenKind> Keywords = new()
     {
         ["int"] = TokenKind.Int,
+        ["double"] = TokenKind.Double,
         ["string"] = TokenKind.String,
         ["bool"] = TokenKind.Bool,
         ["void"] = TokenKind.Void,
@@ -155,9 +156,9 @@ public sealed class Lexer
             return ReadIdentifierOrKeyword(start);
         }
 
-        if (c >= '0' && c <= '9')
+        if (IsDigit(c))
         {
-            return ReadIntegerLiteral(start);
+            return ReadNumberLiteral(start);
         }
 
         if (c == '"')
@@ -167,6 +168,8 @@ public sealed class Lexer
 
         return ReadOperatorOrSeparator(start);
     }
+
+    private static bool IsDigit(char c) => c >= '0' && c <= '9';
 
     private static bool IsIdentifierStart(char c) =>
         (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
@@ -189,17 +192,30 @@ public sealed class Lexer
         return new Token(kind, text, start);
     }
 
-    private Token ReadIntegerLiteral(SourcePosition start)
+    private Token ReadNumberLiteral(SourcePosition start)
     {
         int begin = _index;
 
-        while (!IsAtEnd && Current >= '0' && Current <= '9')
+        while (!IsAtEnd && IsDigit(Current))
         {
             Advance();
         }
 
-        string text = _source.Substring(begin, _index - begin);
-        return new Token(TokenKind.IntegerLiteral, text, start);
+        if (!IsAtEnd && Current == '.' && IsDigit(Peek()))
+        {
+            Advance();
+
+            while (!IsAtEnd && IsDigit(Current))
+            {
+                Advance();
+            }
+
+            string doubleText = _source.Substring(begin, _index - begin);
+            return new Token(TokenKind.DoubleLiteral, doubleText, start);
+        }
+
+        string intText = _source.Substring(begin, _index - begin);
+        return new Token(TokenKind.IntegerLiteral, intText, start);
     }
 
     private Token ReadStringLiteral(SourcePosition start)
@@ -268,18 +284,38 @@ public sealed class Lexer
         {
             case '+':
                 Advance();
+                if (Match('='))
+                {
+                    return new Token(TokenKind.PlusAssign, "+=", start);
+                }
+
                 return new Token(TokenKind.Plus, "+", start);
 
             case '-':
                 Advance();
+                if (Match('='))
+                {
+                    return new Token(TokenKind.MinusAssign, "-=", start);
+                }
+
                 return new Token(TokenKind.Minus, "-", start);
 
             case '*':
                 Advance();
+                if (Match('='))
+                {
+                    return new Token(TokenKind.StarAssign, "*=", start);
+                }
+
                 return new Token(TokenKind.Star, "*", start);
 
             case '/':
                 Advance();
+                if (Match('='))
+                {
+                    return new Token(TokenKind.SlashAssign, "/=", start);
+                }
+
                 return new Token(TokenKind.Slash, "/", start);
 
             case '%':

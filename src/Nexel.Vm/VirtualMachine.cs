@@ -67,8 +67,9 @@ public sealed class VirtualMachine
 
         ValidateFunctionMetadata(entryFunction);
 
-        int[] globals = new int[program.GlobalCount];
-        List<int> stack = new List<int>();
+        IReadOnlyList<double> doubleConstants = program.DoubleConstants ?? Array.Empty<double>();
+        VmValue[] globals = new VmValue[program.GlobalCount];
+        List<VmValue> stack = new List<VmValue>();
         Stack<CallFrame> frames = new Stack<CallFrame>();
 
         frames.Push(new CallFrame(
@@ -95,12 +96,23 @@ public sealed class VirtualMachine
                 switch (instruction.Code)
                 {
                     case OpCode.Push:
-                        stack.Add(instruction.Operand);
+                        stack.Add(VmValue.FromInt(instruction.Operand));
                         break;
 
                     case OpCode.PushBool:
-                        stack.Add(instruction.Operand == 0 ? 0 : 1);
+                        stack.Add(VmValue.FromBool(instruction.Operand != 0));
                         break;
+
+                    case OpCode.PushDouble:
+                    {
+                        if (instruction.Operand < 0 || instruction.Operand >= doubleConstants.Count)
+                        {
+                            throw new VmException($"Invalid double constant index: {instruction.Operand}.");
+                        }
+
+                        stack.Add(VmValue.FromDouble(doubleConstants[instruction.Operand]));
+                        break;
+                    }
 
                     case OpCode.Pop:
                         PopValue(stack, currentFrame);
@@ -108,117 +120,142 @@ public sealed class VirtualMachine
 
                     case OpCode.Add:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(checked(a + b));
+                        VmValue b = PopValue(stack, currentFrame);
+                        VmValue a = PopValue(stack, currentFrame);
+
+                        if (a.Kind == VmValueKind.Int && b.Kind == VmValueKind.Int)
+                        {
+                            stack.Add(VmValue.FromInt(checked(a.IntValue + b.IntValue)));
+                        }
+                        else if (a.Kind == VmValueKind.Double && b.Kind == VmValueKind.Double)
+                        {
+                            stack.Add(VmValue.FromDouble(a.DoubleValue + b.DoubleValue));
+                        }
+                        else
+                        {
+                            throw new VmException($"Incompatible operand types for Add: {a.Kind} and {b.Kind}.");
+                        }
+
                         break;
                     }
 
                     case OpCode.Sub:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(checked(a - b));
+                        VmValue b = PopValue(stack, currentFrame);
+                        VmValue a = PopValue(stack, currentFrame);
+
+                        if (a.Kind == VmValueKind.Int && b.Kind == VmValueKind.Int)
+                        {
+                            stack.Add(VmValue.FromInt(checked(a.IntValue - b.IntValue)));
+                        }
+                        else if (a.Kind == VmValueKind.Double && b.Kind == VmValueKind.Double)
+                        {
+                            stack.Add(VmValue.FromDouble(a.DoubleValue - b.DoubleValue));
+                        }
+                        else
+                        {
+                            throw new VmException($"Incompatible operand types for Sub: {a.Kind} and {b.Kind}.");
+                        }
+
                         break;
                     }
 
                     case OpCode.Mul:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(checked(a * b));
+                        VmValue b = PopValue(stack, currentFrame);
+                        VmValue a = PopValue(stack, currentFrame);
+
+                        if (a.Kind == VmValueKind.Int && b.Kind == VmValueKind.Int)
+                        {
+                            stack.Add(VmValue.FromInt(checked(a.IntValue * b.IntValue)));
+                        }
+                        else if (a.Kind == VmValueKind.Double && b.Kind == VmValueKind.Double)
+                        {
+                            stack.Add(VmValue.FromDouble(a.DoubleValue * b.DoubleValue));
+                        }
+                        else
+                        {
+                            throw new VmException($"Incompatible operand types for Mul: {a.Kind} and {b.Kind}.");
+                        }
+
                         break;
                     }
 
                     case OpCode.Div:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
+                        VmValue b = PopValue(stack, currentFrame);
+                        VmValue a = PopValue(stack, currentFrame);
 
-                        if (b == 0)
+                        if (a.Kind == VmValueKind.Int && b.Kind == VmValueKind.Int)
                         {
-                            throw new VmException("Division by zero.");
+                            if (b.IntValue == 0)
+                            {
+                                throw new VmException("Division by zero.");
+                            }
+
+                            stack.Add(VmValue.FromInt(checked(a.IntValue / b.IntValue)));
+                        }
+                        else if (a.Kind == VmValueKind.Double && b.Kind == VmValueKind.Double)
+                        {
+                            stack.Add(VmValue.FromDouble(a.DoubleValue / b.DoubleValue));
+                        }
+                        else
+                        {
+                            throw new VmException($"Incompatible operand types for Div: {a.Kind} and {b.Kind}.");
                         }
 
-                        stack.Add(checked(a / b));
                         break;
                     }
 
                     case OpCode.Mod:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
+                        int b = PopInt(stack, currentFrame, "Mod");
+                        int a = PopInt(stack, currentFrame, "Mod");
 
                         if (b == 0)
                         {
                             throw new VmException("Modulo by zero.");
                         }
 
-                        stack.Add(checked(a % b));
+                        stack.Add(VmValue.FromInt(checked(a % b)));
                         break;
                     }
 
                     case OpCode.Neg:
                     {
-                        int value = PopValue(stack, currentFrame);
-                        stack.Add(checked(-value));
+                        VmValue value = PopValue(stack, currentFrame);
+
+                        if (value.Kind == VmValueKind.Int)
+                        {
+                            stack.Add(VmValue.FromInt(checked(-value.IntValue)));
+                        }
+                        else if (value.Kind == VmValueKind.Double)
+                        {
+                            stack.Add(VmValue.FromDouble(-value.DoubleValue));
+                        }
+                        else
+                        {
+                            throw new VmException($"Incompatible operand type for Neg: {value.Kind}.");
+                        }
+
                         break;
                     }
 
                     case OpCode.Not:
                     {
-                        int value = PopValue(stack, currentFrame);
-                        stack.Add(value == 0 ? 1 : 0);
+                        bool value = PopBool(stack, currentFrame, "Not");
+                        stack.Add(VmValue.FromBool(!value));
                         break;
                     }
 
                     case OpCode.Equal:
-                    {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(a == b ? 1 : 0);
-                        break;
-                    }
-
                     case OpCode.NotEqual:
-                    {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(a != b ? 1 : 0);
-                        break;
-                    }
-
                     case OpCode.Less:
-                    {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(a < b ? 1 : 0);
-                        break;
-                    }
-
                     case OpCode.LessOrEqual:
-                    {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(a <= b ? 1 : 0);
-                        break;
-                    }
-
                     case OpCode.Greater:
-                    {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(a > b ? 1 : 0);
-                        break;
-                    }
-
                     case OpCode.GreaterOrEqual:
-                    {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(a >= b ? 1 : 0);
+                        ExecuteComparison(stack, currentFrame, instruction.Code);
                         break;
-                    }
 
                     case OpCode.Jump:
                         ValidateJumpTarget(instruction.Operand, program);
@@ -227,8 +264,8 @@ public sealed class VirtualMachine
 
                     case OpCode.JumpIfFalse:
                     {
-                        int condition = PopValue(stack, currentFrame);
-                        if (condition == 0)
+                        bool condition = PopBool(stack, currentFrame, "JumpIfFalse");
+                        if (!condition)
                         {
                             ValidateJumpTarget(instruction.Operand, program);
                             nextIp = instruction.Operand;
@@ -239,8 +276,8 @@ public sealed class VirtualMachine
 
                     case OpCode.JumpIfTrue:
                     {
-                        int condition = PopValue(stack, currentFrame);
-                        if (condition != 0)
+                        bool condition = PopBool(stack, currentFrame, "JumpIfTrue");
+                        if (condition)
                         {
                             ValidateJumpTarget(instruction.Operand, program);
                             nextIp = instruction.Operand;
@@ -267,14 +304,69 @@ public sealed class VirtualMachine
                             throw new VmException($"Invalid integer input: '{line}'.");
                         }
 
-                        stack.Add(value);
+                        stack.Add(VmValue.FromInt(value));
                         break;
                     }
 
                     case OpCode.Print:
                     {
-                        int value = PopValue(stack, currentFrame);
+                        int value = PopInt(stack, currentFrame, "Print");
                         output.WriteLine(value.ToString(CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                    case OpCode.ReadDouble:
+                    {
+                        string? line = input.ReadLine();
+
+                        if (line is null)
+                        {
+                            throw new VmException("Unexpected end of input.");
+                        }
+
+                        if (!double.TryParse(
+                            line,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out double value) || !double.IsFinite(value))
+                        {
+                            throw new VmException($"Invalid double input: '{line}'.");
+                        }
+
+                        stack.Add(VmValue.FromDouble(value));
+                        break;
+                    }
+
+                    case OpCode.PrintDouble:
+                    {
+                        double value = PopDouble(stack, currentFrame, "PrintDouble");
+                        output.WriteLine(value.ToString("R", CultureInfo.InvariantCulture));
+                        break;
+                    }
+
+                    case OpCode.IntToDouble:
+                    {
+                        int value = PopInt(stack, currentFrame, "IntToDouble");
+                        stack.Add(VmValue.FromDouble(value));
+                        break;
+                    }
+
+                    case OpCode.DoubleToInt:
+                    {
+                        double value = PopDouble(stack, currentFrame, "DoubleToInt");
+
+                        if (!double.IsFinite(value))
+                        {
+                            throw new VmException($"Cannot convert non-finite double '{value}' to int.");
+                        }
+
+                        double truncated = Math.Truncate(value);
+                        if (truncated < int.MinValue || truncated > int.MaxValue)
+                        {
+                            throw new VmException($"Double value '{value}' is out of Int32 range.");
+                        }
+
+                        stack.Add(VmValue.FromInt((int)truncated));
                         break;
                     }
 
@@ -288,7 +380,7 @@ public sealed class VirtualMachine
                     case OpCode.StoreLocal:
                     {
                         ValidateSlot(instruction.Operand, currentFrame.Locals.Length, "local");
-                        int value = PopValue(stack, currentFrame);
+                        VmValue value = PopValue(stack, currentFrame);
                         currentFrame.Locals[instruction.Operand] = value;
                         break;
                     }
@@ -303,7 +395,7 @@ public sealed class VirtualMachine
                     case OpCode.StoreGlobal:
                     {
                         ValidateSlot(instruction.Operand, globals.Length, "global");
-                        int value = PopValue(stack, currentFrame);
+                        VmValue value = PopValue(stack, currentFrame);
                         globals[instruction.Operand] = value;
                         break;
                     }
@@ -374,24 +466,24 @@ public sealed class VirtualMachine
 
                     case OpCode.Abs:
                     {
-                        int value = PopValue(stack, currentFrame);
-                        stack.Add(Math.Abs(value));
+                        int value = PopInt(stack, currentFrame, "Abs");
+                        stack.Add(VmValue.FromInt(Math.Abs(value)));
                         break;
                     }
 
                     case OpCode.Min:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(Math.Min(a, b));
+                        int b = PopInt(stack, currentFrame, "Min");
+                        int a = PopInt(stack, currentFrame, "Min");
+                        stack.Add(VmValue.FromInt(Math.Min(a, b)));
                         break;
                     }
 
                     case OpCode.Max:
                     {
-                        int b = PopValue(stack, currentFrame);
-                        int a = PopValue(stack, currentFrame);
-                        stack.Add(Math.Max(a, b));
+                        int b = PopInt(stack, currentFrame, "Max");
+                        int a = PopInt(stack, currentFrame, "Max");
+                        stack.Add(VmValue.FromInt(Math.Max(a, b)));
                         break;
                     }
 
@@ -410,7 +502,7 @@ public sealed class VirtualMachine
         }
     }
 
-    private static int PopValue(List<int> stack, CallFrame frame)
+    private static VmValue PopValue(List<VmValue> stack, CallFrame frame)
     {
         if (stack.Count <= frame.StackBase)
         {
@@ -418,9 +510,84 @@ public sealed class VirtualMachine
         }
 
         int lastIndex = stack.Count - 1;
-        int value = stack[lastIndex];
+        VmValue value = stack[lastIndex];
         stack.RemoveAt(lastIndex);
         return value;
+    }
+
+    private static int PopInt(List<VmValue> stack, CallFrame frame, string operation)
+    {
+        VmValue value = PopValue(stack, frame);
+        if (value.Kind != VmValueKind.Int)
+        {
+            throw new VmException($"Expected Int operand for {operation}, got {value.Kind}.");
+        }
+
+        return value.IntValue;
+    }
+
+    private static double PopDouble(List<VmValue> stack, CallFrame frame, string operation)
+    {
+        VmValue value = PopValue(stack, frame);
+        if (value.Kind != VmValueKind.Double)
+        {
+            throw new VmException($"Expected Double operand for {operation}, got {value.Kind}.");
+        }
+
+        return value.DoubleValue;
+    }
+
+    private static bool PopBool(List<VmValue> stack, CallFrame frame, string operation)
+    {
+        VmValue value = PopValue(stack, frame);
+        if (value.Kind != VmValueKind.Bool)
+        {
+            throw new VmException($"Expected Bool operand for {operation}, got {value.Kind}.");
+        }
+
+        return value.BoolValue;
+    }
+
+    private static void ExecuteComparison(List<VmValue> stack, CallFrame frame, OpCode opCode)
+    {
+        VmValue b = PopValue(stack, frame);
+        VmValue a = PopValue(stack, frame);
+
+        if (a.Kind == VmValueKind.Int && b.Kind == VmValueKind.Int)
+        {
+            bool result = opCode switch
+            {
+                OpCode.Equal => a.IntValue == b.IntValue,
+                OpCode.NotEqual => a.IntValue != b.IntValue,
+                OpCode.Less => a.IntValue < b.IntValue,
+                OpCode.LessOrEqual => a.IntValue <= b.IntValue,
+                OpCode.Greater => a.IntValue > b.IntValue,
+                OpCode.GreaterOrEqual => a.IntValue >= b.IntValue,
+                _ => throw new VmException($"Unsupported comparison instruction: {opCode}."),
+            };
+
+            stack.Add(VmValue.FromBool(result));
+            return;
+        }
+
+        if (a.Kind == VmValueKind.Double && b.Kind == VmValueKind.Double)
+        {
+            bool result = opCode switch
+            {
+                OpCode.Equal => a.DoubleValue == b.DoubleValue,
+                OpCode.NotEqual => a.DoubleValue != b.DoubleValue,
+                OpCode.Less => a.DoubleValue < b.DoubleValue,
+                OpCode.LessOrEqual => a.DoubleValue <= b.DoubleValue,
+                OpCode.Greater => a.DoubleValue > b.DoubleValue,
+                OpCode.GreaterOrEqual => a.DoubleValue >= b.DoubleValue,
+                _ => throw new VmException($"Unsupported comparison instruction: {opCode}."),
+            };
+
+            stack.Add(VmValue.FromBool(result));
+            return;
+        }
+
+        throw new VmException($"Incompatible operand types for {opCode}: {a.Kind} and {b.Kind}.");
     }
 
     private static void ValidateFunctionIndex(VmProgram program, int functionIndex)
@@ -467,7 +634,7 @@ public sealed class VirtualMachine
         {
             FunctionIndex = functionIndex;
             ReturnAddress = returnAddress;
-            Locals = new int[localCount];
+            Locals = new VmValue[localCount];
             StackBase = stackBase;
         }
 
@@ -475,7 +642,7 @@ public sealed class VirtualMachine
 
         public int ReturnAddress { get; }
 
-        public int[] Locals { get; }
+        public VmValue[] Locals { get; }
 
         public int StackBase { get; }
     }

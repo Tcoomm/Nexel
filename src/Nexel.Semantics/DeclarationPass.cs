@@ -9,6 +9,10 @@ internal sealed class DeclarationPass : AbstractPass
     {
         ["readInt"] = new FunctionSymbol("readInt", LangType.Int, Array.Empty<LangType>()),
         ["print"] = new FunctionSymbol("print", LangType.Void, new[] { LangType.Int }),
+        ["readDouble"] = new FunctionSymbol("readDouble", LangType.Double, Array.Empty<LangType>()),
+        ["printDouble"] = new FunctionSymbol("printDouble", LangType.Void, new[] { LangType.Double }),
+        ["toDouble"] = new FunctionSymbol("toDouble", LangType.Double, new[] { LangType.Int }),
+        ["toInt"] = new FunctionSymbol("toInt", LangType.Int, new[] { LangType.Double }),
         ["abs"] = new FunctionSymbol("abs", LangType.Int, new[] { LangType.Int }),
         ["min"] = new FunctionSymbol("min", LangType.Int, new[] { LangType.Int, LangType.Int }),
         ["max"] = new FunctionSymbol("max", LangType.Int, new[] { LangType.Int, LangType.Int }),
@@ -34,9 +38,9 @@ internal sealed class DeclarationPass : AbstractPass
     {
         EnsureNameAvailable(node.Name, node.Position);
 
-        if (node.Type != LangType.Int && node.Type != LangType.Bool)
+        if (node.Type != LangType.Int && node.Type != LangType.Bool && node.Type != LangType.Double)
         {
-            throw new SemanticException("Global variable must have type int or bool", node.Position);
+            throw new SemanticException("Global variable must have type int, bool, or double", node.Position);
         }
 
         VariableSymbol symbol = new VariableSymbol(node.Name, node.Type);
@@ -48,7 +52,10 @@ internal sealed class DeclarationPass : AbstractPass
     {
         EnsureNameAvailable(node.Name, node.Position);
 
-        if (node.ReturnType != LangType.Int && node.ReturnType != LangType.Bool && node.ReturnType != LangType.Void)
+        if (node.ReturnType != LangType.Int
+            && node.ReturnType != LangType.Bool
+            && node.ReturnType != LangType.Double
+            && node.ReturnType != LangType.Void)
         {
             throw new SemanticException("Invalid function return type", node.Position);
         }

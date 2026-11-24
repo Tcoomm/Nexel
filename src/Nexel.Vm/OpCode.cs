@@ -4,6 +4,7 @@ public enum OpCode
 {
     Push,
     PushBool,
+    PushDouble,
     Add,
     Sub,
     Mul,
@@ -23,6 +24,10 @@ public enum OpCode
     JumpIfTrue,
     ReadInt,
     Print,
+    ReadDouble,
+    PrintDouble,
+    IntToDouble,
+    DoubleToInt,
     LoadLocal,
     StoreLocal,
     LoadGlobal,

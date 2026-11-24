@@ -28,6 +28,8 @@ public interface IAstVisitor
 
     void Visit(IntegerLiteralExpression node);
 
+    void Visit(DoubleLiteralExpression node);
+
     void Visit(BooleanLiteralExpression node);
 
     void Visit(VariableExpression node);

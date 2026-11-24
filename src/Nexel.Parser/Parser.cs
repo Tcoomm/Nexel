@@ -47,7 +47,7 @@ public sealed class Parser
             return ParseFunctionDeclaration(type, name);
         }
 
-        if ((type == LangType.Int || type == LangType.Bool) && Current.Kind == TokenKind.Assign)
+        if (type != LangType.Void && Current.Kind == TokenKind.Assign)
         {
             Advance();
             Expression initializer = ParseGlobalInitializer();
@@ -74,6 +74,12 @@ public sealed class Parser
             return LangType.Bool;
         }
 
+        if (Current.Kind == TokenKind.Double)
+        {
+            Advance();
+            return LangType.Double;
+        }
+
         Expect(TokenKind.Void);
         return LangType.Void;
     }
@@ -92,10 +98,26 @@ public sealed class Parser
             return LangType.Bool;
         }
 
+        if (Current.Kind == TokenKind.Double)
+        {
+            Advance();
+            return LangType.Double;
+        }
+
         throw new ParserException(
-            $"Expected type 'int' or 'bool', got {Current.Kind} '{Current.Lexeme}'",
+            $"Expected type 'int', 'bool', or 'double', got {Current.Kind} '{Current.Lexeme}'",
             Current.Position);
     }
+
+    private static bool IsValueTypeStart(TokenKind kind) =>
+        kind == TokenKind.Int || kind == TokenKind.Bool || kind == TokenKind.Double;
+
+    private static bool IsAssignmentOperator(TokenKind kind) =>
+        kind == TokenKind.Assign
+        || kind == TokenKind.PlusAssign
+        || kind == TokenKind.MinusAssign
+        || kind == TokenKind.StarAssign
+        || kind == TokenKind.SlashAssign;
 
     private FunctionDeclaration ParseFunctionDeclaration(LangType type, Token name)
     {
@@ -142,7 +164,7 @@ public sealed class Parser
 
     private Statement ParseStatement()
     {
-        if (Current.Kind == TokenKind.Int || Current.Kind == TokenKind.Bool)
+        if (IsValueTypeStart(Current.Kind))
         {
             return ParseVariableDeclarationStatement();
         }
@@ -172,7 +194,7 @@ public sealed class Parser
             return ParseForStatement();
         }
 
-        if (Current.Kind == TokenKind.Identifier && NextKind == TokenKind.Assign)
+        if (Current.Kind == TokenKind.Identifier && IsAssignmentOperator(NextKind))
         {
             return ParseAssignmentStatement();
         }
@@ -234,7 +256,7 @@ public sealed class Parser
 
     private Statement ParseForInitializer()
     {
-        if (Current.Kind == TokenKind.Int || Current.Kind == TokenKind.Bool)
+        if (IsValueTypeStart(Current.Kind))
         {
             LangType type = ParseValueType();
             Token name = ExpectIdentifier();
@@ -247,18 +269,12 @@ public sealed class Parser
             return new VariableDeclarationStatement(Position(name), declaration);
         }
 
-        Token identifier = ExpectIdentifier();
-        Expect(TokenKind.Assign);
-        Expression value = ParseExpression();
-        return new AssignmentStatement(Position(identifier), identifier.Lexeme, value);
+        return ParseAssignment();
     }
 
     private AssignmentStatement ParseForStep()
     {
-        Token identifier = ExpectIdentifier();
-        Expect(TokenKind.Assign);
-        Expression value = ParseExpression();
-        return new AssignmentStatement(Position(identifier), identifier.Lexeme, value);
+        return ParseAssignment();
     }
 
     private VariableDeclarationStatement ParseVariableDeclarationStatement()
@@ -277,11 +293,37 @@ public sealed class Parser
 
     private AssignmentStatement ParseAssignmentStatement()
     {
-        Token name = ExpectIdentifier();
-        Expect(TokenKind.Assign);
-        Expression value = ParseExpression();
+        AssignmentStatement assignment = ParseAssignment();
         Expect(TokenKind.Semicolon);
-        return new AssignmentStatement(Position(name), name.Lexeme, value);
+        return assignment;
+    }
+
+    private AssignmentStatement ParseAssignment()
+    {
+        Token identifier = ExpectIdentifier();
+        AssignmentOperator op = ParseAssignmentOperator();
+        Expression value = ParseExpression();
+        return new AssignmentStatement(Position(identifier), identifier.Lexeme, value, op);
+    }
+
+    private AssignmentOperator ParseAssignmentOperator()
+    {
+        Token opToken = Current;
+
+        AssignmentOperator op = opToken.Kind switch
+        {
+            TokenKind.Assign => AssignmentOperator.Assign,
+            TokenKind.PlusAssign => AssignmentOperator.Add,
+            TokenKind.MinusAssign => AssignmentOperator.Subtract,
+            TokenKind.StarAssign => AssignmentOperator.Multiply,
+            TokenKind.SlashAssign => AssignmentOperator.Divide,
+            _ => throw new ParserException(
+                $"Expected assignment operator, got {opToken.Kind} '{opToken.Lexeme}'",
+                opToken.Position),
+        };
+
+        Advance();
+        return op;
     }
 
     private ReturnStatement ParseReturnStatement()
@@ -470,6 +512,23 @@ public sealed class Parser
 
             Advance();
             return new IntegerLiteralExpression(Position(token), value);
+        }
+
+        if (Current.Kind == TokenKind.DoubleLiteral)
+        {
+            if (!double.TryParse(
+                token.Lexeme,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out double value) || !double.IsFinite(value))
+            {
+                throw new ParserException(
+                    $"Double literal is invalid or out of range: {token.Lexeme}",
+                    token.Position);
+            }
+
+            Advance();
+            return new DoubleLiteralExpression(Position(token), value);
         }
 
         if (Current.Kind == TokenKind.True || Current.Kind == TokenKind.False)

@@ -4,9 +4,11 @@ public enum TokenKind
 {
     Identifier,
     IntegerLiteral,
+    DoubleLiteral,
     StringLiteral,
 
     Int,
+    Double,
     String,
     Bool,
     Void,
@@ -26,6 +28,10 @@ public enum TokenKind
     Percent,
 
     Assign,
+    PlusAssign,
+    MinusAssign,
+    StarAssign,
+    SlashAssign,
 
     Equal,
     NotEqual,

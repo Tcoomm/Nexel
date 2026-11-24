@@ -4,5 +4,6 @@ public enum LangType
 {
     Int,
     Bool,
+    Double,
     Void,
 }
