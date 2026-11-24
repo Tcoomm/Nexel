@@ -10,6 +10,8 @@ public sealed class ProgramNode : AstNode
 
     public IReadOnlyList<Declaration> Declarations { get; }
 
+    public FunctionSymbol? MainFunction { get; set; }
+
     public override void Accept(IAstVisitor visitor)
     {
         visitor.Visit(this);

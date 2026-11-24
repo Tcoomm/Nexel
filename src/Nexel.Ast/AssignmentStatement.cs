@@ -13,6 +13,8 @@ public sealed class AssignmentStatement : Statement
 
     public Expression Value { get; }
 
+    public VariableSymbol? Symbol { get; set; }
+
     public override void Accept(IAstVisitor visitor)
     {
         visitor.Visit(this);

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nexel.Lexer\Nexel.Lexer.csproj" />
     <ProjectReference Include="..\Nexel.Parser\Nexel.Parser.csproj" />
+    <ProjectReference Include="..\Nexel.Semantics\Nexel.Semantics.csproj" />
     <ProjectReference Include="..\Nexel.Vm\Nexel.Vm.csproj" />
     <ProjectReference Include="..\Nexel.VmCodegen\Nexel.VmCodegen.csproj" />
   </ItemGroup>

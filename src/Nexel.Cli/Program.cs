@@ -1,12 +1,13 @@
 using Nexel.Execution;
 using Nexel.Lexer;
 using Nexel.Parser;
+using Nexel.Semantics;
 using Nexel.Vm;
 using Nexel.VmCodegen;
 
 if (args.Length != 1)
 {
-    Console.Error.WriteLine("Укажите путь к исходному файлу.");
+    Console.Error.WriteLine("Specify the path to the source file.");
     return 1;
 }
 
@@ -21,6 +22,10 @@ catch (LexerException ex)
     Console.Error.WriteLine(ex.Message);
 }
 catch (ParserException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+}
+catch (SemanticException ex)
 {
     Console.Error.WriteLine(ex.Message);
 }

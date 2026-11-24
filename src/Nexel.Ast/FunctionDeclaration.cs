@@ -19,6 +19,8 @@ public sealed class FunctionDeclaration : Declaration
 
     public BlockStatement Body { get; }
 
+    public FunctionSymbol? Symbol { get; set; }
+
     public override void Accept(IAstVisitor visitor)
     {
         visitor.Visit(this);

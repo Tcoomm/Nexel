@@ -6,4 +6,6 @@ public abstract class Expression : AstNode
         : base(position)
     {
     }
+
+    public LangType? ResultType { get; set; }
 }

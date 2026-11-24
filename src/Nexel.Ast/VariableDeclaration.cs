@@ -16,6 +16,8 @@ public sealed class VariableDeclaration : Declaration
 
     public Expression Initializer { get; }
 
+    public VariableSymbol? Symbol { get; set; }
+
     public override void Accept(IAstVisitor visitor)
     {
         visitor.Visit(this);

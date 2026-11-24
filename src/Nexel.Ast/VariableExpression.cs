@@ -10,6 +10,8 @@ public sealed class VariableExpression : Expression
 
     public string Name { get; }
 
+    public VariableSymbol? Symbol { get; set; }
+
     public override void Accept(IAstVisitor visitor)
     {
         visitor.Visit(this);

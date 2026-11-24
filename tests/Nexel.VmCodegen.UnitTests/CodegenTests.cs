@@ -1,6 +1,7 @@
 ﻿namespace Nexel.VmCodegen.UnitTests;
 
 using Nexel.Ast;
+using Nexel.Semantics;
 using Nexel.Vm;
 using Nexel.VmCodegen;
 
@@ -13,7 +14,7 @@ public sealed class CodegenTests
     {
         ProgramNode ast = MainProgram();
 
-        VmProgram program = new VmCodeGenerator().Generate(ast);
+        VmProgram program = Generate(ast);
 
         Assert.Equal(0, program.EntryFunctionIndex);
         Assert.Equal(0, program.GlobalCount);
@@ -106,7 +107,7 @@ public sealed class CodegenTests
                 ExprStmt(Call("notify"))));
 
         ProgramNode ast = new ProgramNode(Pos, new Declaration[] { notify, main });
-        VmProgram vmProgram = new VmCodeGenerator().Generate(ast);
+        VmProgram vmProgram = Generate(ast);
 
         VmFunction mainFn = vmProgram.Functions[2];
         IReadOnlyList<Instruction> mainBody = vmProgram.Instructions.Skip(mainFn.EntryPoint).ToList();
@@ -136,7 +137,7 @@ public sealed class CodegenTests
             ExprStmt(Call("print", Var("x"))),
         };
 
-        VmProgram program = new VmCodeGenerator().Generate(MainProgram(body));
+        VmProgram program = Generate(MainProgram(body));
         VmFunction main = program.Functions[1];
 
         Assert.Equal(2, main.LocalCount);
@@ -170,7 +171,7 @@ public sealed class CodegenTests
             Block(ExprStmt(Call("print", Var("first")))));
 
         ProgramNode ast = new ProgramNode(Pos, new Declaration[] { g1, main, g2 });
-        VmProgram program = new VmCodeGenerator().Generate(ast);
+        VmProgram program = Generate(ast);
 
         Assert.Equal(2, program.GlobalCount);
 
@@ -213,7 +214,7 @@ public sealed class CodegenTests
                 LocalVar("sum", Bin(BinaryOperator.Add, Var("a"), Var("b"))),
                 new ReturnStatement(Pos, Var("sum"))));
 
-        VmProgram program = new VmCodeGenerator().Generate(new ProgramNode(Pos, new Declaration[] { main, add }));
+        VmProgram program = Generate(new ProgramNode(Pos, new Declaration[] { main, add }));
 
         VmFunction addFn = program.Functions[2];
         Assert.Equal("add", addFn.Name);
@@ -260,83 +261,16 @@ public sealed class CodegenTests
             new Instruction(OpCode.Return));
     }
 
-    [Fact]
-    public void Generate_UnknownVariable_ThrowsCodegenExceptionWithPosition()
+    private static VmProgram Generate(ProgramNode ast)
     {
-        AstPosition errorPos = new AstPosition(7, 13);
-        ProgramNode ast = MainProgram(ExprStmt(Call("print", new VariableExpression(errorPos, "missing"))));
-
-        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
-
-        Assert.Equal(errorPos, exception.Position);
-    }
-
-    [Fact]
-    public void Generate_SelfReferencingInitializer_ThrowsCodegenExceptionWithPosition()
-    {
-        AstPosition errorPos = new AstPosition(7, 13);
-        ProgramNode ast = MainProgram(
-            new VariableDeclarationStatement(
-                errorPos,
-                new VariableDeclaration(errorPos, LangType.Int, "x", Bin(BinaryOperator.Add, new VariableExpression(errorPos, "x"), Lit(1)))));
-
-        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
-
-        Assert.Equal(errorPos, exception.Position);
-    }
-
-    [Fact]
-    public void Generate_VariableConflictingWithBuiltin_ThrowsCodegenExceptionWithPosition()
-    {
-        AstPosition errorPos = new AstPosition(7, 13);
-        ProgramNode ast = MainProgram(
-            new VariableDeclarationStatement(
-                errorPos,
-                new VariableDeclaration(errorPos, LangType.Int, "print", Lit(1))));
-
-        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
-
-        Assert.Equal(errorPos, exception.Position);
-    }
-
-    [Fact]
-    public void Generate_InvalidGlobalInitializer_ThrowsCodegenExceptionWithPosition()
-    {
-        AstPosition errorPos = new AstPosition(7, 13);
-        ProgramNode ast = new ProgramNode(
-            Pos,
-            new Declaration[]
-            {
-                new VariableDeclaration(Pos, LangType.Int, "g", new CallExpression(errorPos, "readInt", Array.Empty<Expression>())),
-                new FunctionDeclaration(Pos, LangType.Void, "main", Array.Empty<ParameterNode>(), Block()),
-            });
-
-        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
-
-        Assert.Equal(errorPos, exception.Position);
-    }
-
-    [Fact]
-    public void Generate_MissingReturn_ThrowsCodegenExceptionWithPosition()
-    {
-        AstPosition errorPos = new AstPosition(7, 13);
-        ProgramNode ast = new ProgramNode(
-            Pos,
-            new Declaration[]
-            {
-                new FunctionDeclaration(errorPos, LangType.Int, "broken", Array.Empty<ParameterNode>(), Block(ExprStmt(Call("print", Lit(1))))),
-                new FunctionDeclaration(Pos, LangType.Void, "main", Array.Empty<ParameterNode>(), Block()),
-            });
-
-        CodegenException exception = Assert.Throws<CodegenException>(() => new VmCodeGenerator().Generate(ast));
-
-        Assert.Equal(errorPos, exception.Position);
+        SemanticAnalyzer.Analyze(ast);
+        return new VmCodeGenerator().Generate(ast);
     }
 
     private static void AssertMainInstructions(IReadOnlyList<Statement> mainStatements, params Instruction[] expectedMain)
     {
         ProgramNode ast = MainProgram(mainStatements.ToArray());
-        VmProgram program = new VmCodeGenerator().Generate(ast);
+        VmProgram program = Generate(ast);
         VmFunction main = program.Functions[1];
 
         IReadOnlyList<Instruction> actualMain = program.Instructions.Skip(main.EntryPoint).ToList();

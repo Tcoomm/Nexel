@@ -13,6 +13,7 @@
     <Project Path="tests/Nexel.AcceptanceTests/Nexel.AcceptanceTests.csproj" />
     <Project Path="tests/Nexel.Lexer.UnitTests/Nexel.Lexer.UnitTests.csproj" />
     <Project Path="tests/Nexel.Parser.UnitTests/Nexel.Parser.UnitTests.csproj" />
+    <Project Path="tests/Nexel.Semantics.UnitTests/Nexel.Semantics.UnitTests.csproj" />
     <Project Path="tests/Nexel.Vm.UnitTests/Nexel.Vm.UnitTests.csproj" />
     <Project Path="tests/Nexel.VmCodegen.UnitTests/Nexel.VmCodegen.UnitTests.csproj" />
   </Folder>

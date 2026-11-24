@@ -13,6 +13,8 @@ public sealed class CallExpression : Expression
 
     public IReadOnlyList<Expression> Arguments { get; }
 
+    public FunctionSymbol? Symbol { get; set; }
+
     public override void Accept(IAstVisitor visitor)
     {
         visitor.Visit(this);
