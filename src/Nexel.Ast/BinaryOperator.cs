@@ -7,4 +7,12 @@ public enum BinaryOperator
     Multiply,
     Divide,
     Modulo,
+    Equal,
+    NotEqual,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
+    And,
+    Or,
 }

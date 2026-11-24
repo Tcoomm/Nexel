@@ -1,4 +1,4 @@
-﻿namespace Nexel.VmCodegen;
+namespace Nexel.VmCodegen;
 
 using Nexel.Ast;
 using Nexel.Vm;
@@ -134,9 +134,54 @@ public sealed class VmCodeGenerator : IAstVisitor
         Emit(new Instruction(OpCode.Return));
     }
 
+    public void Visit(IfStatement node)
+    {
+        node.Condition.Accept(this);
+        int jumpToElse = EmitJump(OpCode.JumpIfFalse);
+        node.ThenBlock.Accept(this);
+
+        if (node.ElseBlock is null)
+        {
+            PatchJump(jumpToElse, _instructions.Count);
+            return;
+        }
+
+        int jumpToEnd = EmitJump(OpCode.Jump);
+        PatchJump(jumpToElse, _instructions.Count);
+        node.ElseBlock.Accept(this);
+        PatchJump(jumpToEnd, _instructions.Count);
+    }
+
+    public void Visit(WhileStatement node)
+    {
+        int begin = _instructions.Count;
+        node.Condition.Accept(this);
+        int jumpToEnd = EmitJump(OpCode.JumpIfFalse);
+        node.Body.Accept(this);
+        Emit(new Instruction(OpCode.Jump, begin));
+        PatchJump(jumpToEnd, _instructions.Count);
+    }
+
+    public void Visit(ForStatement node)
+    {
+        node.Initializer.Accept(this);
+        int begin = _instructions.Count;
+        node.Condition.Accept(this);
+        int jumpToEnd = EmitJump(OpCode.JumpIfFalse);
+        node.Body.Accept(this);
+        node.Step.Accept(this);
+        Emit(new Instruction(OpCode.Jump, begin));
+        PatchJump(jumpToEnd, _instructions.Count);
+    }
+
     public void Visit(IntegerLiteralExpression node)
     {
         Emit(new Instruction(OpCode.Push, node.Value));
+    }
+
+    public void Visit(BooleanLiteralExpression node)
+    {
+        Emit(new Instruction(OpCode.PushBool, node.Value ? 1 : 0));
     }
 
     public void Visit(VariableExpression node)
@@ -157,6 +202,10 @@ public sealed class VmCodeGenerator : IAstVisitor
                 Emit(new Instruction(OpCode.Neg));
                 break;
 
+            case UnaryOperator.Not:
+                Emit(new Instruction(OpCode.Not));
+                break;
+
             default:
                 throw new CodegenException($"Unsupported unary operator '{node.Operator}'", node.Position);
         }
@@ -164,6 +213,18 @@ public sealed class VmCodeGenerator : IAstVisitor
 
     public void Visit(BinaryExpression node)
     {
+        if (node.Operator == BinaryOperator.And)
+        {
+            EmitShortCircuitAnd(node);
+            return;
+        }
+
+        if (node.Operator == BinaryOperator.Or)
+        {
+            EmitShortCircuitOr(node);
+            return;
+        }
+
         node.Left.Accept(this);
         node.Right.Accept(this);
 
@@ -174,6 +235,12 @@ public sealed class VmCodeGenerator : IAstVisitor
             BinaryOperator.Multiply => OpCode.Mul,
             BinaryOperator.Divide => OpCode.Div,
             BinaryOperator.Modulo => OpCode.Mod,
+            BinaryOperator.Equal => OpCode.Equal,
+            BinaryOperator.NotEqual => OpCode.NotEqual,
+            BinaryOperator.Less => OpCode.Less,
+            BinaryOperator.LessOrEqual => OpCode.LessOrEqual,
+            BinaryOperator.Greater => OpCode.Greater,
+            BinaryOperator.GreaterOrEqual => OpCode.GreaterOrEqual,
             _ => throw new CodegenException($"Unsupported binary operator '{node.Operator}'", node.Position),
         };
 
@@ -193,6 +260,41 @@ public sealed class VmCodeGenerator : IAstVisitor
         {
             Emit(new Instruction(OpCode.Call, _functionIndices[function]));
         }
+    }
+
+    private void EmitShortCircuitAnd(BinaryExpression node)
+    {
+        node.Left.Accept(this);
+        int jumpIfFalse = EmitJump(OpCode.JumpIfFalse);
+        node.Right.Accept(this);
+        int jumpToEnd = EmitJump(OpCode.Jump);
+
+        PatchJump(jumpIfFalse, _instructions.Count);
+        Emit(new Instruction(OpCode.PushBool, 0));
+        PatchJump(jumpToEnd, _instructions.Count);
+    }
+
+    private void EmitShortCircuitOr(BinaryExpression node)
+    {
+        node.Left.Accept(this);
+        int jumpIfTrue = EmitJump(OpCode.JumpIfTrue);
+        node.Right.Accept(this);
+        int jumpToEnd = EmitJump(OpCode.Jump);
+
+        PatchJump(jumpIfTrue, _instructions.Count);
+        Emit(new Instruction(OpCode.PushBool, 1));
+        PatchJump(jumpToEnd, _instructions.Count);
+    }
+
+    private int EmitJump(OpCode opCode)
+    {
+        _instructions.Add(new Instruction(opCode));
+        return _instructions.Count - 1;
+    }
+
+    private void PatchJump(int instructionIndex, int target)
+    {
+        _instructions[instructionIndex] = _instructions[instructionIndex] with { Operand = target };
     }
 
     private static T RequireSymbol<T>(T? symbol, AstPosition position)

@@ -20,7 +20,15 @@ public interface IAstVisitor
 
     void Visit(ReturnStatement node);
 
+    void Visit(IfStatement node);
+
+    void Visit(WhileStatement node);
+
+    void Visit(ForStatement node);
+
     void Visit(IntegerLiteralExpression node);
+
+    void Visit(BooleanLiteralExpression node);
 
     void Visit(VariableExpression node);
 

@@ -59,7 +59,32 @@ public abstract class AbstractPass : IAstVisitor
         node.Value?.Accept(this);
     }
 
+    public virtual void Visit(IfStatement node)
+    {
+        node.Condition.Accept(this);
+        node.ThenBlock.Accept(this);
+        node.ElseBlock?.Accept(this);
+    }
+
+    public virtual void Visit(WhileStatement node)
+    {
+        node.Condition.Accept(this);
+        node.Body.Accept(this);
+    }
+
+    public virtual void Visit(ForStatement node)
+    {
+        node.Initializer.Accept(this);
+        node.Condition.Accept(this);
+        node.Step.Accept(this);
+        node.Body.Accept(this);
+    }
+
     public virtual void Visit(IntegerLiteralExpression node)
+    {
+    }
+
+    public virtual void Visit(BooleanLiteralExpression node)
     {
     }
 

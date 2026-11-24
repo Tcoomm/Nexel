@@ -1,15 +1,26 @@
-﻿namespace Nexel.Vm;
+namespace Nexel.Vm;
 
 public enum OpCode
 {
     Push,
+    PushBool,
     Add,
     Sub,
     Mul,
     Div,
     Mod,
     Neg,
+    Not,
+    Equal,
+    NotEqual,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
     Pop,
+    Jump,
+    JumpIfFalse,
+    JumpIfTrue,
     ReadInt,
     Print,
     LoadLocal,
