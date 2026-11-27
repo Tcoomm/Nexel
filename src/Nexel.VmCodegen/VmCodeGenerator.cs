@@ -100,7 +100,8 @@ public sealed class VmCodeGenerator : IAstVisitor
         node.Body.Accept(this);
 
         bool returnsValue = node.ReturnType != LangType.Void;
-        if (!returnsValue && (_instructions.Count == entryPoint || _instructions[^1].Code != OpCode.Return))
+
+        if (_instructions.Count == entryPoint || _instructions[^1].Code != OpCode.Return)
         {
             Emit(new Instruction(OpCode.Return));
         }

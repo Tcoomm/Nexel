@@ -26,7 +26,6 @@ internal sealed class TypeCheckingPass : AbstractPass
             parameter.Accept(this);
         }
 
-        // Параметры и внешний блок функции образуют одну область видимости.
         base.Visit(node.Body);
         _scopes.Pop();
         _currentFunction = null;
@@ -54,7 +53,6 @@ internal sealed class TypeCheckingPass : AbstractPass
 
     public override void Visit(ForStatement node)
     {
-        // Область for охватывает инициализатор, условие, шаг и тело.
         PushScope();
 
         node.Initializer.Accept(this);
@@ -71,7 +69,6 @@ internal sealed class TypeCheckingPass : AbstractPass
 
         if (_currentFunction is not null)
         {
-            // Инициализатор проверяется до объявления новой переменной.
             node.Symbol = DeclareLocal(node.Name, node.Type, node.Position);
         }
     }

@@ -8,16 +8,22 @@ using Nexel.Semantics;
 
 public sealed class ControlFlowSemanticTests
 {
+    public static TheoryData<string> InvalidProgramData =>
+        new TheoryData<string>
+        {
+            "void main() { if (1) { } }",
+            "void main() { while (1) { } }",
+            "void main() { for (int i = 0; i; i = i + 1) { } }",
+            "void main() { print(true + 1); }",
+            "void main() { bool x = 1 && true; }",
+            "void main() { bool x = 1; }",
+            "void main() { print(true); }",
+            "int f(int x) { if (x > 0) { return 1; } } void main() { }",
+            "void main() { for (int i = 0; i < 1; i = i + 1) { } print(i); }",
+        };
+
     [Theory]
-    [InlineData("void main() { if (1) { } }")]
-    [InlineData("void main() { while (1) { } }")]
-    [InlineData("void main() { for (int i = 0; i; i = i + 1) { } }")]
-    [InlineData("void main() { print(true + 1); }")]
-    [InlineData("void main() { bool x = 1 && true; }")]
-    [InlineData("void main() { bool x = 1; }")]
-    [InlineData("void main() { print(true); }")]
-    [InlineData("int f(int x) { if (x > 0) { return 1; } } void main() { }")]
-    [InlineData("void main() { for (int i = 0; i < 1; i = i + 1) { } print(i); }")]
+    [MemberData(nameof(InvalidProgramData))]
     public void InvalidProgram_ThrowsSemanticException(string source)
     {
         ProgramNode program = Parse(source);

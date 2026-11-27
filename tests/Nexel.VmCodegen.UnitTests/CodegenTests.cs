@@ -1,4 +1,4 @@
-﻿namespace Nexel.VmCodegen.UnitTests;
+namespace Nexel.VmCodegen.UnitTests;
 
 using Nexel.Ast;
 using Nexel.Semantics;
@@ -183,7 +183,7 @@ public sealed class CodegenTests
             new Instruction(OpCode.StoreGlobal, 0),
             new Instruction(OpCode.Push, 10),
             new Instruction(OpCode.StoreGlobal, 1),
-            new Instruction(OpCode.Call, 1), // индекс main = 1
+            new Instruction(OpCode.Call, 1),
             new Instruction(OpCode.Return),
         };
 

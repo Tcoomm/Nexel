@@ -614,7 +614,7 @@ public sealed class VirtualMachine
 
     private static void ValidateJumpTarget(int target, VmProgram program)
     {
-        if (target < 0 || target > program.Instructions.Count)
+        if (target < 0 || target >= program.Instructions.Count)
         {
             throw new VmException($"Invalid jump target {target}.");
         }
